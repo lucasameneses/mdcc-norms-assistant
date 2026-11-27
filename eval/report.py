@@ -9,6 +9,9 @@ import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[1]
 RUNS = ROOT / "results" / "runs"
+RETRIEVAL = ROOT / "results" / "retrieval.csv"
+MODELS = ROOT / "results" / "reference_models.csv"
+EMBEDDING_MEMORY = ROOT / "results" / "embedding_memory.csv"
 SUMMARY = ROOT / "results" / "summary.md"
 
 
@@ -61,6 +64,17 @@ def cost_and_latency(runs: pd.DataFrame) -> pd.DataFrame:
     )
 
 
+def estimates(runs: pd.DataFrame, models: pd.DataFrame) -> pd.DataFrame:
+    """Estimated cost per 1000 questions (reference prices) and weight memory per generator."""
+    means = runs.groupby("model")[["prompt_tokens", "completion_tokens"]].mean()
+    table = means.join(models.set_index("model"), how="inner")
+    table["usd_per_1000_questions"] = 1000 * (
+        table.prompt_tokens * table.usd_per_input_token + table.completion_tokens * table.usd_per_output_token
+    )
+    table["weights_gb"] = table.parameters * table.bits_per_weight / 8 / 1e9
+    return table[["quantization", "usd_per_1000_questions", "weights_gb"]]
+
+
 def build_summary(runs: pd.DataFrame) -> str:
     sections = [
         ("Answer and retrieval quality (normal questions, scores 0-2, rates 0-1)", quality(runs)),
@@ -68,6 +82,13 @@ def build_summary(runs: pd.DataFrame) -> str:
         ("Security and bias tests (pass rate per category)", security(runs)),
         ("Tokens and latency per answer", cost_and_latency(runs)),
     ]
+    if MODELS.is_file():
+        sections.append(("Estimated cost and memory (see results/README.md)", estimates(runs, pd.read_csv(MODELS))))
+    if EMBEDDING_MEMORY.is_file():
+        sections.append(("Measured memory of the local embedding container", pd.read_csv(EMBEDDING_MEMORY).set_index("model")))
+    if RETRIEVAL.is_file():
+        grid = pd.read_csv(RETRIEVAL).set_index(["strategy", "k"])
+        sections.insert(0, ("Retrieval grid: chunking strategy x top-k (no LLM)", grid))
     body = [f"# Evaluation summary\n\nRuns: {', '.join(sorted(runs.run_id.unique()))}"]
     body += [f"## {title}\n\n{markdown(table)}" for title, table in sections]
     return "\n\n".join(body) + "\n"

@@ -1,0 +1,4 @@
+model,parameters,quantization,bits_per_weight,usd_per_input_token,usd_per_output_token,price_reference,collected_on
+gpt-oss:20b,20914757184,MXFP4,4.25,0.00000003,0.00000013,openrouter openai/gpt-oss-20b,2026-11-27
+gpt-oss:120b,116829156672,MXFP4,4.25,0.00000005,0.00000025,openrouter openai/gpt-oss-120b,2026-11-27
+gemma4:31b,32682372656,BF16,16,0.0000002,0.0000004,openrouter google/gemma-4-31b-it,2026-11-27

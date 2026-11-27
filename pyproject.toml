@@ -12,6 +12,7 @@ dependencies = [
   "pymupdf>=1.26",
   "streamlit>=1.50",
   "pandas>=2.3",
+  "krippendorff>=0.8",
 ]
 
 [project.optional-dependencies]

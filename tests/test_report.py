@@ -35,3 +35,18 @@ def test_human_sample_takes_only_normal_answers(tmp_path):
     sample = draw_sample(load_runs(tmp_path), size=20)
     assert len(sample) == 20 and set(sample.category) == {"normal"}
     assert sample.sample_id.iloc[0] == "s01"
+
+
+def test_cost_and_memory_estimates_use_the_reference_table():
+    import pandas as pd
+
+    from eval.report import estimates
+
+    runs = pd.DataFrame({"model": ["m", "m"], "prompt_tokens": [1000, 3000], "completion_tokens": [100, 300]})
+    models = pd.DataFrame({
+        "model": ["m"], "parameters": [20e9], "quantization": ["MXFP4"], "bits_per_weight": [4.25],
+        "usd_per_input_token": [1e-7], "usd_per_output_token": [1e-6],
+    })
+    row = estimates(runs, models).loc["m"]
+    assert round(row.usd_per_1000_questions, 6) == round(1000 * (2000 * 1e-7 + 200 * 1e-6), 6)
+    assert round(row.weights_gb, 3) == round(20e9 * 4.25 / 8 / 1e9, 3)
