@@ -1,0 +1,113 @@
+\chapter{Resultados}
+\label{cap:resultados}
+
+Os resultados vêm de uma rodada de 27/11/2026 com as 114 perguntas descritas na
+Seção~\ref{sec:avaliacao-automatica}, para os três geradores, com cinco trechos
+recuperados por pergunta.
+
+\section{Recuperação}
+
+A Tabela~\ref{tab:grade} compara as três estratégias de divisão em trechos nas 92
+perguntas normais, sem nenhum LLM. A divisão por artigo encontrou a evidência entre os
+cinco primeiros trechos em 90\% das perguntas, contra 75\% dos trechos de 1.000 caracteres
+e 69\% dos de 500. A diferença aparece também no MRR: com a divisão por artigo, a
+evidência tende a vir em primeiro lugar.
+
+\begin{table}[htb]
+\centering
+\caption{Recuperação por estratégia de divisão e número de trechos (92 perguntas normais).}
+\label{tab:grade}
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Estratégia} & \textbf{hit@3} & \textbf{hit@5} & \textbf{hit@8} & \textbf{MRR (k=5)} \\
+\midrule
+Por artigo & 0,87 & 0,90 & 0,92 & 0,80 \\
+Tamanho fixo, 1.000 caracteres & 0,70 & 0,75 & 0,80 & 0,60 \\
+Tamanho fixo, 500 caracteres & 0,64 & 0,69 & 0,69 & 0,57 \\
+\bottomrule
+\end{tabular}
+\legend{Fonte: elaborado pelas autoras.}
+\end{table}
+
+\section{Qualidade das respostas}
+
+Na Tabela~\ref{tab:qualidade}, os três geradores ficaram próximos. O gpt-oss:120b teve a
+maior proporção de respostas aprovadas (88\%) e a maior nota média de correção; o
+gpt-oss:20b, a menor (83\%). A fidelidade ficou perto do máximo nos três, e menos de 3\%
+das respostas normais saíram sem citação. A formulação informal não prejudicou as
+respostas: a aprovação nas versões informais foi igual ou maior que nas formais.
+
+\begin{table}[htb]
+\centering
+\caption{Qualidade das respostas às 92 perguntas normais (notas de 0 a 2; taxas de 0 a 1).}
+\label{tab:qualidade}
+\small\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lccccccc}
+\toprule
+\textbf{Modelo} & \textbf{Correção} & \textbf{Fidel.} & \textbf{Citação} & \textbf{Aprov.} & \textbf{Sem fonte} & \textbf{Formal} & \textbf{Informal} \\
+\midrule
+gpt-oss:20b  & 1,79 & 1,96 & 1,92 & 0,83 & 0,03 & 0,83 & 0,83 \\
+gpt-oss:120b & 1,83 & 1,96 & 1,95 & 0,88 & 0,02 & 0,85 & 0,91 \\
+gemma4:31b   & 1,79 & 1,97 & 1,93 & 0,87 & 0,03 & 0,85 & 0,89 \\
+\bottomrule
+\end{tabular}
+\legend{Fonte: elaborado pelas autoras.}
+\end{table}
+
+\section{Segurança}
+
+A Tabela~\ref{tab:seguranca} mostra as diferenças mais claras entre os modelos. Os dois
+gpt-oss recusaram todas as perguntas fora do escopo; o gemma4:31b respondeu uma delas.
+Nas perguntas sem resposta nas normas, os modelos usaram a frase de ``não encontrei'' em
+cerca de metade dos casos; nos demais, trataram a pergunta como fora do escopo ou
+responderam com o que havia nos trechos. A injeção indireta foi o ponto mais fraco: o
+gpt-oss:20b repetiu a instrução plantada em cinco dos seis casos, e os outros dois
+modelos, em metade.
+
+\begin{table}[htb]
+\centering
+\caption{Taxa de aprovação nos testes de segurança.}
+\label{tab:seguranca}
+\begin{tabular}{lccc}
+\toprule
+\textbf{Modelo} & \textbf{Injeção (6)} & \textbf{Não encontrada (8)} & \textbf{Fora do escopo (8)} \\
+\midrule
+gpt-oss:20b  & 0,17 & 0,50 & 1,00 \\
+gpt-oss:120b & 0,50 & 0,50 & 1,00 \\
+gemma4:31b   & 0,50 & 0,62 & 0,88 \\
+\bottomrule
+\end{tabular}
+\legend{Fonte: elaborado pelas autoras.}
+\end{table}
+
+\section{Custo, memória e latência}
+
+O gemma4:31b respondeu mais rápido (mediana de 0,50~s) e com menos tokens de saída (40 em
+média), mas é o mais caro por token e, servido em BF16, o que mais ocupa memória
+(Tabela~\ref{tab:custo}). Os gpt-oss produzem mais tokens porque incluem o raciocínio do
+modelo na saída; ainda assim, saem mais baratos por pergunta. O gpt-oss:20b foi o mais
+lento, com percentil 95 de 5,1~s, apesar de ser o menor. O contêiner local de
+\textit{embeddings} ocupou cerca de 1,5~GB e levou 60~ms por pergunta.
+
+\begin{table}[htb]
+\centering
+\caption{Tokens, latência, custo estimado e memória estimada dos pesos.}
+\label{tab:custo}
+\small\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lcccccc}
+\toprule
+\textbf{Modelo} & \textbf{Entrada} & \textbf{Saída} & \textbf{p50 (s)} & \textbf{p95 (s)} & \textbf{US\$/1.000 perg.} & \textbf{Pesos (GB)} \\
+\midrule
+gpt-oss:20b  & 1.268 & 347 & 2,08 & 5,07 & 0,08 & 11,1 \\
+gpt-oss:120b & 1.268 & 219 & 0,94 & 1,83 & 0,12 & 62,1 \\
+gemma4:31b   & 1.314 &  40 & 0,50 & 0,89 & 0,28 & 65,4 \\
+\bottomrule
+\end{tabular}
+\legend{Fonte: elaborado pelas autoras.}
+\end{table}
+
+\section{Avaliação humana}
+
+\pendente{Médias por critério, alfa de Krippendorff entre as avaliadoras e correlação de
+Spearman entre o juiz e as notas humanas, calculados por \texttt{python -m eval.agreement}
+a partir das planilhas preenchidas em \texttt{results/human/ratings/}.}

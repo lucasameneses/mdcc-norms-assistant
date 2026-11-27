@@ -1,0 +1,33 @@
+\chapter{Discussão}
+\label{cap:discussao}
+
+A estrutura da norma pesou mais que o modelo. A divisão por artigo elevou a recuperação de
+75\% para 90\%, enquanto a troca de gerador mudou a aprovação em no máximo cinco pontos
+percentuais. Parte dessa vantagem vem do próprio conjunto de avaliação: as perguntas foram
+sugeridas a partir de trechos por artigo, de modo que a evidência nunca atravessa a
+fronteira entre dois artigos, o que não vale para os trechos de tamanho fixo.
+
+Entre os geradores, a escolha recai sobre o gpt-oss:120b. Ele teve a maior aprovação,
+recusou todas as perguntas fora do escopo e manteve a latência abaixo de 2~s no percentil
+95, a cerca de US\$~0,12 por mil perguntas. O gemma4:31b é a alternativa quando a latência
+importa mais que o custo. O gpt-oss:20b só se justificaria em execução local, onde ocupa
+cerca de 11~GB, mas foi o mais vulnerável à injeção.
+
+Nenhum modelo resistiu de forma consistente à injeção indireta, apesar da instrução
+explícita no \textit{prompt}, o que confirma o risco descrito por \citeonline{Greshake2023}:
+em um sistema RAG, quem controla um documento indexado controla parte da resposta. A
+confusão entre ``não encontrei'' e ``fora do escopo'' indica que as duas regras do
+\textit{prompt} precisam de exemplos. Com seis casos de injeção e oito por categoria de
+segurança, essas taxas têm margem de erro grande; uma execução anterior do gpt-oss:120b
+falhou em um caso que, na repetição, passou.
+
+\section{Limitações e ameaças à validade}
+
+O conjunto de avaliação foi escrito por alunas do próprio programa, o que aproxima as
+perguntas das dúvidas reais, mas pode concentrá-las nos temas que elas conhecem. O
+juiz automático é um LLM e herda os vieses descritos por \citeonline{Zheng2023}; a
+comparação com as notas humanas estima o tamanho desse problema, sem eliminá-lo. As
+estimativas de custo e de memória dependem de preços de terceiros e de suposições
+sobre a quantização servida pelo Ollama Cloud. O regimento disponível no site é de
+2016, e alterações posteriores não publicadas ficariam fora do assistente. Por fim, o
+sistema responde a cada pergunta de forma isolada, sem memória da conversa.

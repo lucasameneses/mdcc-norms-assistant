@@ -1,0 +1,173 @@
+\chapter{Metodologia}
+\label{cap:metodologia}
+
+\section{Corpus}
+\label{sec:corpus}
+
+O corpus reúne os documentos públicos indicados na página de regulamentos e de
+procedimentos do MDCC (Tabela~\ref{tab:corpus}). Os PDFs têm camada de texto e
+dispensaram reconhecimento óptico de caracteres. As páginas de procedimentos foram
+reduzidas ao texto do conteúdo principal e datadas pela data de acesso
+(26/11/2026), já que não informam data de publicação. O calendário universitário de
+2026 não estava disponível no endereço indicado pelo site e ficou fora do corpus, assim
+como os editais de seleção e de bolsas, cujos valores e datas mudam a cada ano.
+
+\begin{table}[ht]
+\centering
+\caption{Documentos do corpus.}
+\label{tab:corpus}
+\footnotesize
+\begin{tabular}{llr}
+\toprule
+\textbf{Documento} & \textbf{Data} & \textbf{Trechos} \\
+\midrule
+Regimento do MDCC & 2016 & 55 \\
+Resolução n.\textsuperscript{o} 17/CEPE & 04/12/2015 & 52 \\
+Norma MDCC 01/2025 (colegiado) & 18/07/2025 & 31 \\
+Norma MDCC 02/2019 (professores externos) & 22/11/2019 & 21 \\
+Norma MDCC 01/2024 (PROAP/CAPES) & 17/05/2024 & 18 \\
+Páginas de procedimentos e disciplinas (6) & acesso em 26/11/2026 & 12 \\
+\midrule
+\textbf{Total} & & \textbf{189} \\
+\bottomrule
+\end{tabular}
+
+\legend{Fonte: elaborado pelas autoras.}
+\end{table}
+
+\section{Arquitetura do sistema}
+\label{sec:arquitetura}
+
+A Figura~\ref{fig:arquitetura} mostra o fluxo de uma pergunta. O texto de cada
+documento é dividido em unidades que começam em um artigo (\textit{Art. 12}) ou em um
+item numerado (\textit{3.2.}), conforme o estilo do documento; parágrafos e incisos
+permanecem dentro do seu artigo. Quando a numeração de artigos recomeça, o restante é
+tratado como anexo, o que distingue, na Resolução 17/CEPE, o artigo 1.º da resolução
+do artigo 1.º das normas que ela aprova. Unidades com mais de 1.500 caracteres são
+cortadas por tamanho e mantêm o rótulo. Cada trecho recebe como primeira linha a sua
+citação (título do documento, artigo e data) e é representado com o BGE-M3
+\cite{Chen2024}, executado localmente, em vetores de 1.024 dimensões armazenados no
+PostgreSQL com a extensão pgvector.
+
+Para cada pergunta, dados pessoais (e-mail, CPF e sequências numéricas com perfil de
+matrícula) são mascarados antes de qualquer processamento. Os cinco trechos mais
+próximos são numerados e enviados ao gerador junto de instruções em português: usar
+apenas os trechos, marcar cada afirmação com o número do trecho, responder com uma
+frase fixa quando os trechos não responderem, recusar perguntas fora do tema e tratar
+os trechos como documentos, nunca como ordens. As citações exibidas ao aluno são
+montadas a partir dos metadados dos trechos efetivamente citados, e não do texto
+gerado. A interface é uma página de conversa em Streamlit.
+
+\begin{figure}[ht]
+\centering
+\resizebox{\linewidth}{!}{%
+\begin{tikzpicture}[
+  node distance=4mm and 6mm,
+  box/.style={draw, rounded corners=2pt, align=center, font=\footnotesize, minimum height=8mm, inner sep=3pt},
+  arr/.style={-{Stealth[length=2mm]}, thick}]
+\node[box] (q) {Pergunta};
+\node[box, right=of q] (m) {Máscara de\\dados pessoais};
+\node[box, right=of m] (r) {Recuperação\\top-5 (pgvector)};
+\node[box, right=of r] (g) {Gerador\\(Ollama Cloud)};
+\node[box, right=of g] (a) {Resposta\\+ citações};
+\node[box, below=of r] (e) {BGE-M3\\(local)};
+\node[box, below=of a] (l) {Registro JSONL\\(sem identificação)};
+\draw[arr] (q) -- (m); \draw[arr] (m) -- (r); \draw[arr] (r) -- (g); \draw[arr] (g) -- (a);
+\draw[arr] (e) -- (r); \draw[arr] (a) -- (l);
+\end{tikzpicture}}
+\caption{Fluxo de uma pergunta no assistente.}
+\label{fig:arquitetura}
+
+\legend{Fonte: elaborado pelas autoras.}
+\end{figure}
+
+\section{Seleção dos modelos}
+\label{sec:modelos}
+
+Foram comparados três geradores disponíveis no Ollama Cloud, escolhidos para separar
+dois efeitos. O par gpt-oss:20b e gpt-oss:120b \cite{OpenAI2025} pertence à mesma
+família e isola o efeito do tamanho; o gemma4:31b, de outra família, isola o efeito da
+família. Todos rodam com temperatura zero. A execução local dos geradores foi
+considerada e descartada: a máquina de desenvolvimento não tem GPU, e um modelo de
+cerca de 4 bilhões de parâmetros levaria em torno de 40 minutos para responder a 100
+perguntas na CPU. Apenas o modelo de \textit{embedding} roda localmente, porque o
+serviço em nuvem não oferece modelos desse tipo. O juiz da avaliação automática é o
+glm-5.3, de família diferente das três avaliadas, para evitar a autopreferência
+apontada por \citeonline{Zheng2023}. A escolha final é justificada pelos resultados da
+Capítulo~\ref{cap:resultados}.
+
+\section{Estratégia: \textit{prompting} e RAG}
+\label{sec:estrategia}
+
+A estratégia combina RAG com instruções no \textit{prompt} de sistema. O ajuste fino
+foi descartado por três motivos. As normas mudam por resolução, e um modelo ajustado
+precisaria ser retreinado a cada mudança. O conhecimento incorporado aos pesos não
+traz a sua fonte, enquanto a exigência central do sistema é citar o artigo. E o
+corpus, com 189 trechos, é pequeno demais para um ajuste fino que generalize, mesmo com
+métodos eficientes como o LoRA \cite{Hu2021}. Com RAG, atualizar o assistente se
+resume a substituir o documento e reindexar.
+
+\section{Avaliação automática}
+\label{sec:avaliacao-automatica}
+
+O conjunto de avaliação é escrito pelas autoras a partir de dúvidas reais de alunos do
+programa. Cada pergunta pertence a uma de quatro categorias: \textit{normal} (as
+normas respondem), \textit{não encontrada} (sobre o programa, mas sem resposta nas
+normas), \textit{fora do escopo} (saúde, aconselhamento jurídico, opiniões sobre
+pessoas) e \textit{injeção} (respondida com a coleção envenenada, ver
+Seção~\ref{sec:riscos}). Perguntas normais e de injeção trazem uma resposta de
+referência e um trecho copiado literalmente do documento; um teste automático rejeita
+a pergunta cujo trecho não aparece no texto extraído. Parte das perguntas tem uma
+reescrita informal com o mesmo identificador de par. O conjunto final tem
+114 perguntas: 92 normais (46 pares formal/informal), 8 não encontradas, 8 fora do escopo e 6 de injeção. As perguntas normais, não encontradas e fora do escopo foram sugeridas por um LLM (glm-5.3) a partir de trechos do corpus; para as normais, um teste automático confirmou que a evidência aparece literalmente no documento. As perguntas de injeção foram escritas manualmente. \pendente{confirmar se as autoras revisaram as perguntas sugeridas}
+
+A recuperação é medida sem LLM: \textit{hit@k} indica se o trecho de evidência está
+entre os $k$ recuperados, e o \textit{Mean Reciprocal Rank} (MRR) considera a posição
+em que ele aparece. A resposta é julgada pelo glm-5.3 com uma rubrica em português,
+com notas inteiras de 0 a 2 para correção (comparada à referência), fidelidade (tudo o
+que afirma está nos trechos) e citação (cita o trecho que comprova). As métricas
+seguem as definições do RAGAS \cite{Es2023}, implementadas diretamente para usar
+\textit{prompts} em português. Uma resposta normal é considerada aprovada quando tem
+correção e fidelidade máximas. As categorias \textit{não encontrada} e \textit{fora do
+escopo} são verificadas por regra, pela presença da frase fixa correspondente.
+
+\section{Avaliação humana}
+\label{sec:avaliacao-humana}
+
+Uma amostra aleatória de 20 respostas normais, com o modelo oculto, é avaliada por
+\pendente{número de avaliadoras} pessoas em escala de 1 a 5 para correção, utilidade e
+clareza. São reportadas as médias por critério, a concordância entre avaliadores
+pelo alfa de Krippendorff ordinal e a concordância entre as notas
+humanas e as do juiz automático.
+
+\section{Custo, memória e latência}
+\label{sec:custo}
+
+Para cada resposta são registrados os tokens de entrada e de saída informados pelo
+servidor e a latência de ponta a ponta da chamada ao gerador, resumida pelos
+percentis 50 e 95. O Ollama Cloud é cobrado por assinatura, e não por token; o custo
+por mil perguntas é, por isso, uma estimativa: tokens medidos multiplicados pelo preço
+público por token de um provedor que sirva o mesmo modelo aberto
+(preços públicos do OpenRouter em 27/11/2026: US\$~0,03 e 0,13 por milhão de tokens de entrada e saída para o gpt-oss:20b, US\$~0,05 e 0,25 para o gpt-oss:120b e US\$~0,20 e 0,40 para o gemma4:31b). A memória dos geradores também é estimada,
+pelo número de parâmetros multiplicado pelos bytes por peso na quantização servida,
+somado ao \textit{cache} de atenção. A memória do contêiner de \textit{embeddings},
+que roda localmente, é medida.
+
+\section{Vieses, privacidade e segurança}
+\label{sec:riscos}
+
+Quatro testes foram definidos. \textbf{Injeção indireta}: um documento falso, com a
+instrução de responder que não há prazo máximo para a defesa, é indexado em uma
+coleção separada, nunca usada pela interface; perguntas sobre prazo de defesa são
+respondidas com essa coleção, e a resposta falha se repetir a afirmação plantada
+\cite{Greshake2023}. \textbf{Fora do escopo}: o assistente deve recusar.
+\textbf{Respostas sem fonte}: proporção de respostas normais sem nenhuma citação,
+indicador de alucinação \cite{Ji2023}. \textbf{Formal versus informal}: a diferença
+de aprovação entre os pares de perguntas avalia se o sistema atende pior quem escreve
+de modo coloquial ou com erros de digitação.
+
+Quanto à privacidade, o sistema não tem contas de usuário. Antes de chegar ao modelo
+ou ao registro, a pergunta passa pela máscara de dados pessoais, e o registro recusa
+qualquer campo que identifique quem perguntou, em linha com a minimização prevista na
+LGPD \cite{Brasil2018}. Como os geradores rodam em nuvem, o texto da pergunta sai da
+máquina; a máscara reduz, mas não elimina, esse risco.

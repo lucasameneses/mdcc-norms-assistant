@@ -1,0 +1,37 @@
+\chapter{Trabalhos Relacionados}
+\label{cap:trabalhos-relacionados}
+
+\citeonline{Lewis2020} combinaram um recuperador denso com um gerador
+\textit{sequence-to-sequence} e mostraram que condicionar a geração em passagens
+recuperadas melhora tarefas que dependem de conhecimento factual. O levantamento de
+\citeonline{Gao2023} organiza as variações posteriores em RAG ingênuo, avançado e
+modular, e identifica a divisão dos documentos em trechos e a escolha do modelo de
+\textit{embedding} como pontos que afetam diretamente a qualidade da recuperação. Este
+trabalho fica na categoria mais simples, recuperar e depois gerar, e concentra o
+esforço na divisão em trechos, que segue a estrutura das normas.
+
+Para textos em português, a escolha do \textit{embedding} pesa. O BGE-M3
+\cite{Chen2024} foi treinado para mais de cem línguas e aceita entradas longas, o que o
+torna adequado a artigos extensos de regimentos e resoluções.
+
+A avaliação de sistemas RAG costuma separar a recuperação da geração. O RAGAS
+\cite{Es2023} propõe métricas sem referência humana, como fidelidade da resposta ao
+contexto recuperado, relevância da resposta e precisão do contexto, calculadas com
+auxílio de um LLM. \citeonline{Zheng2023} estudaram o uso de LLMs como juízes e
+encontraram boa concordância com avaliadores humanos, mas também vieses de posição, de
+verbosidade e de autopreferência. Esses vieses motivam, neste trabalho, o uso de um
+juiz de família diferente da dos modelos avaliados e a comparação explícita entre as
+notas do juiz e as notas humanas.
+
+Do lado da segurança, \citeonline{Greshake2023} mostraram que aplicações integradas a
+LLMs podem ser comprometidas por injeção indireta de \textit{prompt}: instruções
+escondidas em conteúdo recuperado, e não digitadas pelo usuário, passam a controlar o
+modelo. Em um sistema RAG qualquer documento indexado é uma superfície de ataque, e
+esse cenário é testado aqui com um documento envenenado. A alucinação, discutida em
+profundidade por \citeonline{Ji2023}, é medida pela taxa de respostas sem fonte e pela
+nota de fidelidade.
+
+O ajuste fino eficiente com LoRA \cite{Hu2021} reduz o custo de adaptar um modelo,
+mas incorpora o conhecimento aos pesos. Para normas que mudam a cada resolução, isso
+exigiria retreinar o modelo a cada alteração e não resolveria a necessidade de citar
+a fonte, razão pela qual a alternativa foi descartada (Seção~\ref{sec:estrategia}).

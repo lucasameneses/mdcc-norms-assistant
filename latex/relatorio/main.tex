@@ -1,0 +1,141 @@
+\documentclass[12pt,openright,oneside,a4paper,english,brazil]{abntex2}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{graphicx}
+\usepackage{microtype}
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage{float}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,fit,backgrounds}
+\usepackage[brazilian,hyperpageref]{backref}
+\usepackage[alf]{abntex2cite}
+\setlength{\emergencystretch}{2em}
+
+\newcommand{\pendente}[1]{\textbf{[PENDENTE: #1]}}
+
+\titulo{Um Assistente Baseado em Recuperação Aumentada para as Normas de um
+Programa de Pós-Graduação: Seleção de Modelos, Avaliação e Riscos}
+\autor{Leticia Sampaio Araujo Gonçalves \\
+Maria Danielly Benício de Araújo \\
+Maria Eduarda Silva Vieira}
+\local{Fortaleza}
+\data{2026}
+\orientador[Professor:]{Prof. José Macedo}
+\instituicao{%
+  Universidade Federal do Ceará -- UFC
+  \par
+  Centro de Ciências
+  \par
+  Mestrado e Doutorado em Ciência da Computação -- MDCC
+}
+\tipotrabalho{Relatório técnico}
+\preambulo{Relatório do trabalho final da disciplina Modelos de Linguagem de Grande
+Escala, do Programa de Pós-Graduação em Ciência da Computação (MDCC) da
+Universidade Federal do Ceará.}
+
+\renewcommand{\imprimircapa}{%
+  \begin{capa}%
+    \center
+    {\ABNTEXchapterfont\large\imprimirinstituicao}
+    \vspace*{1.5cm}
+
+    {\ABNTEXchapterfont\large\imprimirautor}
+    \vfill
+    \begin{center}
+      \ABNTEXchapterfont\bfseries\LARGE\imprimirtitulo
+    \end{center}
+    \vfill
+    \large\imprimirlocal
+    \par
+    \large\imprimirdata
+    \vspace*{1cm}
+  \end{capa}
+}
+
+\makeatletter
+\hypersetup{
+  pdftitle={\@title},
+  colorlinks=true,
+  linkcolor=black,
+  citecolor=black,
+  urlcolor=blue,
+  bookmarksdepth=4
+}
+\makeatother
+
+\begin{document}
+
+\selectlanguage{brazil}
+\frenchspacing
+
+\imprimircapa
+\imprimirfolhaderosto
+
+\begin{resumo}
+Alunos de pós-graduação costumam procurar as regras do seu programa em documentos
+longos e de linguagem normativa: regimento interno, resoluções da universidade e
+páginas de procedimentos. Este relatório descreve um assistente que responde, em
+português, a perguntas sobre as normas do Programa de Pós-Graduação em Ciência da
+Computação da Universidade Federal do Ceará (MDCC/UFC), usando geração aumentada por
+recuperação sobre os documentos oficiais e citando documento, artigo e data em toda
+resposta. O corpus reúne cinco PDFs oficiais e seis páginas de procedimentos,
+divididos em 189 trechos que respeitam a estrutura de artigos das normas e
+representados pelo modelo multilíngue BGE-M3. Três geradores servidos pelo Ollama
+Cloud são comparados (gpt-oss:20b, gpt-oss:120b e gemma4:31b) quanto à qualidade da
+recuperação, à qualidade da resposta julgada por outro LLM e por pessoas, a tokens,
+latência, custo e memória estimados, e a quatro testes de segurança e viés: injeção
+indireta de \textit{prompt}, perguntas fora do escopo, respostas sem fonte e
+formulação formal versus informal. Com 114 perguntas, os três geradores ficaram próximos em qualidade (83\% a 88\% de respostas aprovadas pelo juiz automático); o gpt-oss:120b teve a maior aprovação e recusou todas as perguntas fora do escopo, mas resistiu a apenas metade dos casos de injeção indireta, e a divisão por artigo superou a divisão por tamanho fixo na recuperação (\textit{hit@5} de 0,90 contra 0,75).
+
+\textbf{Palavras-chave}: modelos de linguagem de grande escala. geração aumentada por
+recuperação. avaliação de LLMs. injeção de \textit{prompt}. normas acadêmicas.
+\end{resumo}
+
+\begin{resumo}[Abstract]
+\begin{otherlanguage*}{english}
+Graduate students often look for the rules of their program in long legal-style
+documents: internal regulations, university resolutions and procedure pages.
+This report describes an assistant that answers questions about the rules of the
+Graduate Program in Computer Science of the Federal University of Ceará (MDCC/UFC)
+in Portuguese, using retrieval-augmented generation over the official documents and
+citing the document, the article and its date in every answer. The corpus has five
+official PDFs and six procedure pages, split into 189 chunks that follow the article
+structure of the norms and embedded with the multilingual model BGE-M3. Three
+generators served by Ollama Cloud are compared (gpt-oss:20b, gpt-oss:120b and
+gemma4:31b) on retrieval quality, answer quality judged by a separate LLM and by
+people, tokens, latency, estimated cost and memory, and on four security and bias
+tests: indirect prompt injection, out-of-scope questions, answers without a source and
+formal versus informal phrasing. On 114 questions the three generators were close in quality (83\% to 88\% of answers accepted by the automatic judge); gpt-oss:120b had the highest acceptance and refused every out-of-scope question but resisted only half of the indirect prompt injection cases, and article-based chunking beat fixed-size chunking in retrieval (hit@5 of 0.90 against 0.75).
+
+\textbf{Keywords}: large language models. retrieval-augmented generation. LLM
+evaluation. prompt injection. academic regulations.
+\end{otherlanguage*}
+\end{resumo}
+
+\pdfbookmark[0]{\listfigurename}{lof}
+\listoffigures*
+\cleardoublepage
+\pdfbookmark[0]{\listtablename}{lot}
+\listoftables*
+\cleardoublepage
+\pdfbookmark[0]{\contentsname}{toc}
+\tableofcontents*
+\cleardoublepage
+
+\textual
+
+\input{capitulos/introducao}
+\input{capitulos/trabalhos-relacionados}
+\input{capitulos/metodologia}
+\input{capitulos/resultados}
+\input{capitulos/discussao}
+\input{capitulos/conclusao}
+
+\postextual
+
+\bibliography{referencias}
+
+\end{document}

@@ -1,0 +1,365 @@
+\documentclass[aspectratio=169,11pt]{beamer}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{tgheros}
+\renewcommand{\familydefault}{\sfdefault}
+\usepackage{microtype}
+\usepackage[brazil]{babel}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{tikz}
+\usetikzlibrary{positioning, arrows.meta, calc, shadows}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+
+% ---------------------------------------------------------------- identity (same as the app)
+\definecolor{night}{HTML}{020617}
+\definecolor{panel}{HTML}{0F172A}
+\definecolor{edge}{HTML}{1E293B}
+\definecolor{ink}{HTML}{E2E8F0}
+\definecolor{soft}{HTML}{94A3B8}
+\definecolor{dim}{HTML}{64748B}
+\definecolor{blue}{HTML}{2563EB}
+\definecolor{sky}{HTML}{60A5FA}
+\definecolor{indigo}{HTML}{4F46E5}
+\definecolor{mint}{HTML}{34D399}
+\definecolor{amber}{HTML}{F5B841}
+\definecolor{rose}{HTML}{F87171}
+
+\setbeamercolor{background canvas}{bg=night}
+\setbeamercolor{normal text}{fg=ink}
+\setbeamercolor{structure}{fg=sky}
+\setbeamercolor{alerted text}{fg=amber}
+\setbeamertemplate{navigation symbols}{}
+\setbeamersize{text margin left=0.6cm, text margin right=0.6cm}
+\setbeamertemplate{itemize item}{\color{sky}\raisebox{0.2ex}{\tiny$\blacksquare$}}
+\setbeamerfont{normal text}{size=\normalsize}
+
+% frame title: small kicker + big title, left aligned, with a blue accent bar
+\setbeamertemplate{frametitle}{%
+  \vspace*{0.55cm}%
+  \begin{tikzpicture}[remember picture, overlay]
+    \fill[blue] ([xshift=0.55cm, yshift=-0.62cm]current page.north west) rectangle ++(0.09, -0.62);
+  \end{tikzpicture}%
+  \hspace*{0.35cm}\begin{minipage}{0.85\paperwidth}
+    {\scriptsize\bfseries\color{sky}\MakeUppercase{\insertsection}}\\[-1pt]
+    {\Large\bfseries\color{white}\insertframetitle}
+  \end{minipage}\vspace*{0.1cm}}
+\setbeamertemplate{footline}{%
+  \hspace*{0.6cm}{\tiny\color{dim}\textbf{MDCC}\textcolor{sky}{.rag} \quad Modelos de Linguagem de Grande Escala · MDCC/UFC}%
+  \hfill{\tiny\color{dim}\insertframenumber/\inserttotalframenumber}\hspace*{0.6cm}\vspace*{0.3cm}}
+
+% ---------------------------------------------------------------- helpers
+\tikzset{
+  card/.style={fill=panel, draw=edge, line width=0.6pt, rounded corners=6pt, inner sep=8pt, text width=#1, align=left, text=ink},
+  hot/.style={fill=panel, draw=blue, line width=1pt, rounded corners=6pt, inner sep=8pt, text width=#1, align=left, text=ink},
+  node/.style={fill=panel, draw=edge, line width=0.8pt, rounded corners=5pt, minimum height=1.05cm,
+               minimum width=1.9cm, align=center, font=\small\bfseries, text=ink},
+  hotnode/.style={node, draw=blue, fill=blue!25!panel},
+  localnode/.style={node, draw=mint!70!edge, font=\small, text=mint},
+  flow/.style={-{Stealth[length=2.4mm]}, line width=1pt, color=soft},
+}
+\newcommand{\bignum}[2]{{\fontsize{30}{32}\selectfont\bfseries\color{#1}#2}}
+\newcommand{\caplabel}[1]{{\scriptsize\color{soft}#1}}
+\newcommand{\pill}[2]{\tikz[baseline=(p.base)]\node[fill=#1!18!night, draw=#1!60!night, rounded corners=7pt, inner sep=3pt, font=\scriptsize\bfseries, text=#1](p){#2};}
+\newcommand{\cell}[2]{\tikz[baseline=(c.base)]\node[fill=#1!35!night, rounded corners=3pt, minimum width=2.2cm, minimum height=0.75cm, font=\bfseries, text=white](c){#2};}
+\newcommand{\fonte}[1]{\par\vspace{3pt}{\tiny\color{dim}Fonte: #1}}
+\newcommand{\shot}[2]{\tikz\node[inner sep=0pt, draw=edge, line width=1pt, rounded corners=4pt]{\includegraphics[#1]{#2}};}
+
+\pgfplotsset{
+  dark/.style={
+    axis line style={draw=none}, tick style={draw=none},
+    ticklabel style={font=\scriptsize, color=soft},
+    ymajorgrids, grid style={edge, line width=0.4pt},
+    every node near coord/.append style={font=\scriptsize\bfseries, color=ink},
+    legend style={fill=none, draw=none, text=soft, font=\scriptsize},
+  }
+}
+
+\title{Um assistente RAG para as normas do MDCC}
+\author{Leticia Sampaio Araujo Gonçalves · Maria Danielly Benício de Araújo · Maria Eduarda Silva Vieira}
+
+\begin{document}
+
+% ================================================================ capa
+{\setbeamertemplate{footline}{}
+\begin{frame}[plain]
+  \begin{tikzpicture}[remember picture, overlay]
+    \shade[left color=night, right color=blue!35!night] (current page.south west) rectangle (current page.north east);
+    \fill[blue!20!night, opacity=0.6] ([xshift=-3.2cm, yshift=-1cm]current page.north east) circle (3.2cm);
+    \fill[indigo!25!night, opacity=0.5] ([xshift=-1cm, yshift=1.2cm]current page.south east) circle (2.2cm);
+    \node[anchor=north west, inner sep=0pt] at ([xshift=1cm, yshift=-1cm]current page.north west) {%
+      \tikz\node[fill=blue, rounded corners=6pt, minimum size=0.9cm, font=\large\bfseries, text=white]{\textbf{M}};\hspace{6pt}%
+      \raisebox{0.25cm}{\Large\bfseries\color{white}MDCC\textcolor{sky}{.rag}}};
+    \node[anchor=west, text width=11cm, align=left] at ([xshift=1cm, yshift=0.3cm]current page.west) {%
+      \pill{amber}{TRABALHO FINAL · MODELOS DE LINGUAGEM DE GRANDE ESCALA}\\[10pt]
+      {\fontsize{26}{30}\selectfont\bfseries\color{white}Um assistente RAG para\\as normas do MDCC}\\[8pt]
+      {\normalsize\color{soft}Seleção de modelos, avaliação e riscos}};
+    \node[anchor=south west, text width=12cm, align=left] at ([xshift=1cm, yshift=0.9cm]current page.south west) {%
+      {\small\color{ink}Leticia Sampaio Araujo Gonçalves · Maria Danielly Benício de Araújo · Maria Eduarda Silva Vieira}\\[2pt]
+      {\scriptsize\color{soft}Prof. José Macedo · MDCC -- Universidade Federal do Ceará · Dezembro de 2026}};
+  \end{tikzpicture}
+\end{frame}}
+
+% ================================================================ problema
+\section{O problema}
+\begin{frame}{Quantos créditos faltam? Depende de qual norma você lê}
+  \vspace{0.3cm}
+  \centering
+  \begin{tikzpicture}[node distance=0.5cm]
+    \node[card=4.05cm] (a) {\caplabel{Regimento do MDCC, Art. 30}\\[2pt]\bignum{sky}{24}\\{\small créditos em disciplinas}};
+    \node[card=4.05cm, right=of a] (b) {\caplabel{Resolução 17/CEPE, Anexo, Art. 5}\\[2pt]\bignum{amber}{30}\\{\small créditos, 6 da dissertação}};
+    \node[card=4.05cm, right=of b] (c) {\caplabel{Página do site do MDCC}\\[2pt]\bignum{mint}{5}\\{\small exames de inglês aceitos}};
+  \end{tikzpicture}
+  \vspace{0.6cm}
+
+  \begin{minipage}{0.86\textwidth}\centering\color{soft}
+    As regras estão espalhadas por \textbf{\color{ink}11 documentos} e nem sempre concordam.
+    Sem eles, um LLM responde com \textbf{\color{amber}regras plausíveis e inventadas}.
+  \end{minipage}
+\end{frame}
+
+% ================================================================ solução
+\section{A solução}
+\begin{frame}{Pergunte em português, receba a regra com a fonte}
+  \begin{columns}[c]
+    \begin{column}{0.63\textwidth}
+      \shot{width=\linewidth}{img/chat-resposta.png}
+    \end{column}
+    \begin{column}{0.33\textwidth}
+      \begin{tikzpicture}[node distance=0.15cm]
+        \node[card=3.5cm, inner sep=5pt] (a) {\pill{sky}{CITA}\\[2pt]{\footnotesize documento, artigo e data}};
+        \node[card=3.5cm, inner sep=5pt, below=of a] (b) {\pill{mint}{ADMITE}\\[2pt]{\footnotesize ``não encontrei''}};
+        \node[card=3.5cm, inner sep=5pt, below=of b] (c) {\pill{amber}{RECUSA}\\[2pt]{\footnotesize o que não é norma}};
+        \node[card=3.5cm, inner sep=5pt, below=of c] (d) {\pill{rose}{PROTEGE}\\[2pt]{\footnotesize dados pessoais}};
+      \end{tikzpicture}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{A citação vem do trecho, não da memória do modelo}
+  \vspace{0.6cm}
+  \centering
+  \begin{tikzpicture}[node distance=0.32cm]
+    \node[node] (q) {Pergunta};
+    \node[node, right=of q] (m) {Máscara\\{\footnotesize\color{soft}dados pessoais}};
+    \node[hotnode, right=of m] (r) {Busca top-5\\{\footnotesize\color{soft}pgvector}};
+    \node[node, right=of r] (g) {Gerador\\{\footnotesize\color{soft}Ollama Cloud}};
+    \node[hotnode, right=of g] (a) {Resposta\\{\footnotesize\color{soft}+ citações}};
+    \node[localnode, below=0.8cm of r] (e) {BGE-M3\\{\footnotesize local}};
+    \node[localnode, below=0.8cm of a] (l) {Log JSONL\\{\footnotesize sem identificação}};
+    \draw[flow] (q) -- (m); \draw[flow] (m) -- (r); \draw[flow] (r) -- (g); \draw[flow] (g) -- (a);
+    \draw[flow] (e) -- (r); \draw[flow] (a) -- (l);
+  \end{tikzpicture}
+  \vspace{0.7cm}
+
+  \begin{tikzpicture}[node distance=0.6cm]
+    \node[card=5.2cm] (x) {\caplabel{O modelo escreve}\\{\small ``Até 30 meses \textcolor{sky}{\textbf{[2]}}.''}};
+    \node[card=5.2cm, right=of x] (y) {\caplabel{O sistema mostra}\\{\small \textcolor{sky}{[2]} Resolução 17/CEPE, Anexo, Art. 5 · 2015}};
+    \draw[flow] (x) -- (y);
+  \end{tikzpicture}
+\end{frame}
+
+\begin{frame}{189 trechos que respeitam a estrutura das normas}
+  \begin{columns}[c]
+    \begin{column}{0.33\textwidth}
+      \centering
+      \bignum{sky}{11}\\\caplabel{documentos oficiais}\\[12pt]
+      \bignum{white}{189}\\\caplabel{trechos rotulados por artigo}\\[12pt]
+      \bignum{mint}{1.024}\\\caplabel{dimensões BGE-M3 (multilíngue)}
+    \end{column}
+    \begin{column}{0.62\textwidth}
+      \begin{tikzpicture}
+        \begin{axis}[dark, xbar, width=7.9cm, height=5.6cm, bar width=9pt, xmin=0, xmax=65,
+            symbolic y coords={Procedimentos,PROAP 01/2024,Externos 02/2019,Colegiado 01/2025,Resolução 17/CEPE,Regimento},
+            ytick=data, xtick=\empty, xmajorgrids=false, ymajorgrids=false, nodes near coords, enlarge y limits=0.12,
+            y tick label style={font=\scriptsize, color=ink}]
+          \addplot[fill=blue, draw=none] coordinates {(12,Procedimentos) (18,PROAP 01/2024) (21,Externos 02/2019) (31,Colegiado 01/2025) (52,Resolução 17/CEPE) (55,Regimento)};
+        \end{axis}
+      \end{tikzpicture}
+      {\scriptsize\color{soft}Cada trecho começa em um \textbf{Art.} ou item \textbf{3.2.}; a numeração que recomeça vira \textbf{Anexo}.}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+% ================================================================ escolhas
+\section{Escolhas}
+\begin{frame}{Três geradores para separar tamanho de família}
+  \vspace{0.3cm}
+  \centering
+  \begin{tikzpicture}[node distance=0.45cm]
+    \node[card=2.85cm] (a) {\pill{sky}{TAMANHO}\\[6pt]{\large\bfseries\color{white}gpt-oss:20b}\\{\scriptsize\color{soft}21 B parâmetros · MXFP4}};
+    \node[card=2.85cm, right=of a] (b) {\pill{sky}{TAMANHO}\\[6pt]{\large\bfseries\color{white}gpt-oss:120b}\\{\scriptsize\color{soft}117 B parâmetros · MXFP4}};
+    \node[card=2.85cm, right=of b] (c) {\pill{mint}{FAMÍLIA}\\[6pt]{\large\bfseries\color{white}gemma4:31b}\\{\scriptsize\color{soft}33 B parâmetros · BF16}};
+    \node[card=2.85cm, right=of c] (d) {\pill{amber}{JUIZ}\\[6pt]{\large\bfseries\color{white}glm-5.3}\\{\scriptsize\color{soft}fora das famílias avaliadas}};
+  \end{tikzpicture}
+  \vspace{0.6cm}
+
+  \begin{tikzpicture}[node distance=0.45cm]
+    \node[card=6.3cm] (x) {\caplabel{Por que nuvem}\\{\small Sem GPU, um modelo local de \textasciitilde 4 B levaria \textasciitilde 40 min para 100 respostas.}};
+    \node[card=6.3cm, right=of x] (y) {\caplabel{Por que não ajuste fino}\\{\small As normas mudam por resolução, e pesos não citam fonte. Com RAG, basta reindexar.}};
+  \end{tikzpicture}
+\end{frame}
+
+\begin{frame}{Toda pergunta traz a evidência copiada do documento}
+  \vspace{0.1cm}
+  \centering
+  \begin{tikzpicture}[node distance=0.4cm]
+    \node[card=2.85cm, align=center] (a) {\bignum{sky}{92}\\\caplabel{normais · 46 pares formal/informal}};
+    \node[card=2.85cm, align=center, right=of a] (b) {\bignum{mint}{8}\\\caplabel{sem resposta nas normas}};
+    \node[card=2.85cm, align=center, right=of b] (c) {\bignum{amber}{8}\\\caplabel{fora do escopo}};
+    \node[card=2.85cm, align=center, right=of c] (d) {\bignum{rose}{6}\\\caplabel{injeção indireta}};
+  \end{tikzpicture}
+  \vspace{0.6cm}
+
+  \begin{tikzpicture}[node distance=0.4cm]
+    \node[card=3.9cm] (x) {\pill{sky}{RECUPERAÇÃO}\\[4pt]{\small \textit{hit@k} e MRR, sem LLM}};
+    \node[card=3.9cm, right=of x] (y) {\pill{sky}{RESPOSTA}\\[4pt]{\small juiz: correção, fidelidade, citação (0--2)}};
+    \node[card=3.9cm, right=of y] (z) {\pill{sky}{OPERAÇÃO}\\[4pt]{\small tokens, p50/p95, US\$, memória}};
+  \end{tikzpicture}
+  \vspace{-4pt}\fonte{114 perguntas; normais sugeridas por LLM com evidência verificada automaticamente; injeção escrita à mão.}
+\end{frame}
+
+% ================================================================ resultados
+\section{Resultados}
+\begin{frame}{Dividir por artigo rendeu mais que trocar de modelo}
+  \begin{columns}[c]
+    \begin{column}{0.6\textwidth}
+      \begin{tikzpicture}
+        \begin{axis}[dark, ybar, width=8.4cm, height=6cm, bar width=10pt, ymin=0, ymax=1.05,
+            symbolic x coords={k=3,k=5,k=8}, xtick=data, ytick={0,0.25,0.5,0.75,1},
+            yticklabel style={/pgf/number format/fixed}, enlarge x limits=0.25,
+            legend style={at={(0.5,1.03)}, anchor=south, legend columns=3},
+            nodes near coords, every node near coord/.append style={font=\tiny, rotate=90, anchor=west}]
+          \addplot[fill=blue, draw=none] coordinates {(k=3,0.87) (k=5,0.90) (k=8,0.92)};
+          \addplot[fill=dim, draw=none] coordinates {(k=3,0.70) (k=5,0.75) (k=8,0.80)};
+          \addplot[fill=edge, draw=none] coordinates {(k=3,0.64) (k=5,0.69) (k=8,0.69)};
+          \legend{por artigo, fixo 1000, fixo 500}
+        \end{axis}
+      \end{tikzpicture}
+      \fonte{\textit{hit@k} nas 92 perguntas normais.}
+    \end{column}
+    \begin{column}{0.36\textwidth}
+      \bignum{sky}{+15}\,{\large\bfseries\color{sky}pts}\\
+      \caplabel{de \textit{hit@5} da divisão por artigo sobre o melhor tamanho fixo}\\[14pt]
+      \bignum{soft}{5}\,{\large\bfseries\color{soft}pts}\\
+      \caplabel{maior diferença de aprovação entre os três geradores}\\[10pt]
+      {\tiny\color{dim}Parte da vantagem vem do conjunto: as perguntas nasceram de trechos por artigo.}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Em qualidade, os três modelos ficam próximos}
+  \begin{columns}[c]
+    \begin{column}{0.6\textwidth}
+      \begin{tikzpicture}
+        \begin{axis}[dark, ybar, width=8.4cm, height=6cm, bar width=12pt, ymin=0.6, ymax=1.0,
+            symbolic x coords={gpt-oss:20b,gpt-oss:120b,gemma4:31b}, xtick=data,
+            x tick label style={font=\scriptsize, color=ink}, ytick={0.6,0.7,0.8,0.9,1},
+            enlarge x limits=0.22, legend style={at={(0.5,1.03)}, anchor=south, legend columns=2},
+            nodes near coords, every node near coord/.append style={font=\tiny}]
+          \addplot[fill=blue, draw=none] coordinates {(gpt-oss:20b,0.83) (gpt-oss:120b,0.85) (gemma4:31b,0.85)};
+          \addplot[fill=mint, draw=none] coordinates {(gpt-oss:20b,0.83) (gpt-oss:120b,0.91) (gemma4:31b,0.89)};
+          \legend{formal, informal}
+        \end{axis}
+      \end{tikzpicture}
+      \fonte{taxa de aprovação pelo juiz, 92 perguntas normais.}
+    \end{column}
+    \begin{column}{0.36\textwidth}
+      \begin{tikzpicture}[node distance=0.25cm]
+        \node[card=4.2cm] (a) {\caplabel{aprovação geral}\\{\Large\bfseries\color{white}83\% -- 88\%}};
+        \node[card=4.2cm, below=of a] (b) {\caplabel{respostas sem fonte}\\{\Large\bfseries\color{mint}$\leq$ 3\%}};
+        \node[card=4.2cm, below=of b] (c) {\caplabel{informal vs formal}\\{\small\color{ink}linguagem coloquial \textbf{não} piorou}};
+      \end{tikzpicture}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Segurança é onde os modelos se separam}
+  \vspace{0.4cm}
+  \centering
+  \begin{tabular}{l@{\hspace{10pt}}c@{\hspace{6pt}}c@{\hspace{6pt}}c}
+    & {\scriptsize\color{soft}INJEÇÃO (6)} & {\scriptsize\color{soft}NÃO ENCONTRADA (8)} & {\scriptsize\color{soft}FORA DO ESCOPO (8)} \\[4pt]
+    {\bfseries gpt-oss:20b}  & \cell{rose}{17\%} & \cell{amber}{50\%} & \cell{mint}{100\%} \\[4pt]
+    {\bfseries gpt-oss:120b} & \cell{amber}{50\%} & \cell{amber}{50\%} & \cell{mint}{100\%} \\[4pt]
+    {\bfseries gemma4:31b}   & \cell{amber}{50\%} & \cell{amber}{62\%} & \cell{mint}{88\%} \\
+  \end{tabular}
+  \vspace{0.6cm}
+
+  \begin{tikzpicture}
+    \node[card=12.6cm] {{\color{rose}\textbf{Injeção indireta:}} um documento indexado com ``não há prazo para a defesa''
+      convenceu os modelos em até 5 de 6 casos, \textbf{apesar da regra explícita no prompt}.};
+  \end{tikzpicture}
+\end{frame}
+
+\begin{frame}{Custo, memória e latência mudam a escolha}
+  \vspace{0.3cm}
+  \centering
+  \begin{tikzpicture}[node distance=0.45cm]
+    \node[card=3.9cm] (a) {{\large\bfseries\color{white}gpt-oss:20b}\\[6pt]
+      \caplabel{latência p50 / p95}\\{\bfseries 2,1 s / \textcolor{rose}{5,1 s}}\\[4pt]
+      \caplabel{US\$ por 1.000 perguntas}\\{\bfseries\color{mint}0,08}\\[4pt]
+      \caplabel{memória dos pesos}\\{\bfseries\color{mint}11 GB}};
+    \node[hot=3.9cm, right=of a] (b) {{\large\bfseries\color{white}gpt-oss:120b}\\[6pt]
+      \caplabel{latência p50 / p95}\\{\bfseries 0,9 s / 1,8 s}\\[4pt]
+      \caplabel{US\$ por 1.000 perguntas}\\{\bfseries 0,12}\\[4pt]
+      \caplabel{memória dos pesos}\\{\bfseries 62 GB}};
+    \node[card=3.9cm, right=of b] (c) {{\large\bfseries\color{white}gemma4:31b}\\[6pt]
+      \caplabel{latência p50 / p95}\\{\bfseries\color{mint}0,5 s / 0,9 s}\\[4pt]
+      \caplabel{US\$ por 1.000 perguntas}\\{\bfseries\color{amber}0,28}\\[4pt]
+      \caplabel{memória dos pesos}\\{\bfseries\color{amber}65 GB (BF16)}};
+  \end{tikzpicture}
+  \fonte{tokens e latência medidos; custo com preços públicos do OpenRouter (27/11/2026); memória estimada pelos pesos.}
+\end{frame}
+
+\begin{frame}{Recomendação: gpt-oss:120b}
+  \vspace{0.4cm}
+  \begin{columns}[c]
+    \begin{column}{0.45\textwidth}
+      \begin{tikzpicture}
+        \node[hot=5.2cm] {\pill{mint}{RECOMENDADO}\\[8pt]
+          {\fontsize{22}{24}\selectfont\bfseries\color{white}gpt-oss:120b}\\[8pt]
+          {\small\color{soft}88\% de aprovação · 100\% de recusa fora do escopo · p95 de 1,8 s · US\$ 0,12 por mil perguntas}};
+      \end{tikzpicture}
+    \end{column}
+    \begin{column}{0.5\textwidth}
+      \begin{tikzpicture}[node distance=0.3cm]
+        \node[card=5.2cm] (a) {\caplabel{se latência for prioridade}\\{\small\bfseries gemma4:31b}{\small\color{soft} --- mais rápido, mais caro}};
+        \node[card=5.2cm, below=of a] (b) {\caplabel{se precisar rodar local}\\{\small\bfseries gpt-oss:20b}{\small\color{soft} --- cabe em 11 GB, mais vulnerável}};
+        \node[card=5.2cm, below=of b] (c) {\caplabel{para qualquer modelo}\\{\small\color{ink}tratar a injeção antes de indexar}};
+      \end{tikzpicture}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+% ================================================================ fim
+\section{Próximos passos}
+\begin{frame}{O que fica em aberto}
+  \vspace{0.3cm}
+  \centering
+  \begin{tikzpicture}[node distance=0.45cm]
+    \node[card=2.85cm] (a) {\pill{rose}{SEGURANÇA}\\[6pt]{\small filtrar documentos antes da indexação}};
+    \node[card=2.85cm, right=of a] (b) {\pill{amber}{PROMPT}\\[6pt]{\small exemplos para separar ``não encontrei'' de ``fora do escopo''}};
+    \node[card=2.85cm, right=of b] (c) {\pill{sky}{CORPUS}\\[6pt]{\small calendário acadêmico e editais}};
+    \node[card=2.85cm, right=of c] (d) {\pill{mint}{AVALIAÇÃO}\\[6pt]{\small notas humanas e concordância com o juiz}};
+  \end{tikzpicture}
+  \vspace{0.7cm}
+
+  {\small\color{soft}Código, corpus, perguntas e resultados:}\\[2pt]
+  {\small\bfseries\color{sky}github.com/lucasameneses/mdcc-norms-assistant}
+\end{frame}
+
+{\setbeamertemplate{footline}{}
+\begin{frame}[plain]
+  \begin{tikzpicture}[remember picture, overlay]
+    \shade[left color=night, right color=blue!35!night] (current page.south west) rectangle (current page.north east);
+    \node at (current page.center) {\begin{tabular}{c}
+      {\fontsize{36}{40}\selectfont\bfseries\color{white}Obrigada}\\[10pt]
+      {\normalsize\color{soft}Perguntas e comentários}\\[16pt]
+      {\small\bfseries\color{white}MDCC\textcolor{sky}{.rag}}
+    \end{tabular}};
+  \end{tikzpicture}
+\end{frame}}
+
+\end{document}

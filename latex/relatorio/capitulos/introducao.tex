@@ -1,0 +1,37 @@
+\chapter{Introdução}
+\label{cap:introducao}
+
+As regras que um aluno de mestrado ou doutorado precisa cumprir estão espalhadas por
+documentos de naturezas diferentes. No MDCC/UFC, o prazo de vínculo vem da resolução
+que fixa as normas gerais da pós-graduação da universidade \cite{UFC2015}; os créditos,
+a composição das bancas e a antecedência da divulgação de uma defesa vêm do regimento
+do programa \cite{MDCC2016}; os exames de proficiência aceitos e o prazo para pedir
+aproveitamento de disciplinas aparecem apenas em páginas de procedimentos do site. Uma
+pergunta simples, como quantos créditos faltam para concluir o curso, pode exigir a
+leitura de mais de um documento, e as respostas nem sempre coincidem: o regimento fala
+em 24 créditos em disciplinas, enquanto a resolução fala em um mínimo de 30 créditos,
+dos quais seis correspondem à dissertação.
+
+Modelos de linguagem de grande escala (LLMs) respondem bem a perguntas em linguagem
+natural, mas, sem acesso aos documentos, tendem a produzir regras plausíveis e
+inexistentes \cite{Ji2023}. Em um domínio normativo esse erro tem custo direto para o
+aluno. A geração aumentada por recuperação (RAG) reduz o problema ao entregar ao modelo
+os trechos relevantes no momento da pergunta \cite{Lewis2020,Gao2023}, e permite que
+cada afirmação seja rastreada até a sua fonte.
+
+Este relatório descreve a construção e a avaliação de um assistente RAG para as normas do MDCC. As decisões
+de projeto seguem cinco perguntas: qual modelo usar e por quê; qual estratégia de
+adaptação (\textit{prompting}, RAG ou ajuste fino); como avaliar de forma automática e
+humana; quanto custa cada resposta em tokens, latência e memória; e que riscos de
+viés, privacidade e segurança o sistema traz. As contribuições são:
+(i) um corpus versionado das normas do programa, com uma divisão em trechos que
+preserva artigos e itens, de modo que a citação vem dos metadados e não da memória do
+modelo; (ii) um conjunto de perguntas de avaliação em que cada resposta de referência
+tem um trecho literal do documento como evidência; e (iii) uma comparação de três
+geradores com métricas de recuperação, de qualidade da resposta, de custo e de
+segurança, todas reproduzíveis a partir de arquivos.
+
+O Capítulo~\ref{cap:trabalhos-relacionados} apresenta os trabalhos relacionados. O
+Capítulo~\ref{cap:metodologia} descreve o corpus, o sistema e o protocolo de avaliação. O
+Capítulo~\ref{cap:resultados} traz os resultados, discutidos no
+Capítulo~\ref{cap:discussao}. O Capítulo~\ref{cap:conclusao} conclui.
