@@ -1,0 +1,1657 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MDCC.ai — Assistente de Normas Acadêmicas (RAG)</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Inter & Plus Jakarta Sans & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Chart.js para métricas RAG -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            display: ['Plus Jakarta Sans', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            ufc: {
+              50: '#eff6ff',
+              100: '#dbeafe',
+              500: '#2563eb',
+              600: '#1d4ed8',
+              700: '#1e40af',
+              900: '#1e3a8a',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Custom scrollbar e micro-interações */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(148, 163, 184, 0.4);
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(148, 163, 184, 0.7);
+    }
+
+    @keyframes pulse-subtle {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    .animate-pulse-subtle {
+      animation: pulse-subtle 1.8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+
+    .citation-badge {
+      transition: all 0.15s ease;
+    }
+    .citation-badge:hover {
+      transform: translateY(-1px);
+    }
+
+    /* Range slider estilizado */
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      background: transparent;
+      cursor: pointer;
+    }
+    input[type="range"]::-webkit-slider-runnable-track {
+      height: 6px;
+      border-radius: 9999px;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      margin-top: -5px;
+      background-color: #2563eb;
+      height: 16px;
+      width: 16px;
+      border-radius: 50%;
+      border: 2px solid #ffffff;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 dark:bg-slate-950 dark:text-slate-100 font-sans antialiased selection:bg-blue-500/20 selection:text-blue-700 dark:selection:text-blue-300 transition-colors duration-200">
+
+  <!-- Toast / Notificação Flutuante -->
+  <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- Modal Visualizador de Documento / Chunk -->
+  <div id="source-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-2xl w-full shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+      <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/50">
+        <div class="flex items-center gap-3">
+          <div class="p-2 rounded-xl bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400">
+            <i data-lucide="file-text" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 id="modal-doc-title" class="font-display font-bold text-base text-slate-900 dark:text-white">Documento Normativo</h3>
+            <p id="modal-doc-meta" class="text-xs text-slate-500 dark:text-slate-400">Artigo / Resolução • Chunk ID</p>
+          </div>
+        </div>
+        <button onclick="closeSourceModal()" class="p-2 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800 transition">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+        <div class="flex flex-wrap items-center gap-2 text-xs">
+          <span id="modal-score-badge" class="px-2.5 py-1 rounded-full font-mono font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">
+            Similaridade: 0.92
+          </span>
+          <span id="modal-strategy-badge" class="px-2.5 py-1 rounded-full font-medium bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+            Busca Híbrida (Vetorial + BM25)
+          </span>
+        </div>
+        <div class="p-4 rounded-xl bg-amber-50/60 dark:bg-amber-950/20 border border-amber-200/80 dark:border-amber-800/40">
+          <p class="text-xs font-semibold uppercase tracking-wider text-amber-800 dark:text-amber-400 mb-1.5">Trecho Indexado (Chunk Recuperado)</p>
+          <p id="modal-doc-content" class="text-sm leading-relaxed text-slate-700 dark:text-slate-200 whitespace-pre-line font-normal"></p>
+        </div>
+        <div class="text-xs text-slate-500 dark:text-slate-400 flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800">
+          <span>Fonte Oficial: Programa de Pós-Graduação em Ciência da Computação (MDCC / UFC)</span>
+          <button onclick="copyModalCitation()" class="inline-flex items-center gap-1.5 text-blue-600 dark:text-blue-400 hover:underline font-medium">
+            <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copiar citação
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Layout Principal -->
+  <div class="min-h-screen flex flex-col lg:flex-row">
+
+    <!-- Sidebar de Navegação -->
+    <aside class="w-full lg:w-72 bg-white dark:bg-slate-900 border-b lg:border-b-0 lg:border-r border-slate-200 dark:border-slate-800 flex flex-col justify-between shrink-0 z-30">
+      <div>
+        <!-- Brand Header -->
+        <div class="p-5 flex items-center justify-between border-b border-slate-100 dark:border-slate-800/80">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center text-white shadow-md shadow-blue-600/20">
+              <i data-lucide="book-open-check" class="w-5 h-5"></i>
+            </div>
+            <div>
+              <div class="flex items-center gap-1.5">
+                <span class="font-display font-extrabold text-lg tracking-tight text-slate-900 dark:text-white">MDCC<span class="text-blue-600">.rag</span></span>
+                <span class="text-[10px] font-mono uppercase px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border border-blue-200/60 dark:border-blue-800/60">UFC</span>
+              </div>
+              <p class="text-xs text-slate-500 dark:text-slate-400">Normas & Regimentos</p>
+            </div>
+          </div>
+
+          <!-- Botão Dark Mode Mobile -->
+          <button onclick="toggleDarkMode()" title="Alternar Tema" class="lg:hidden p-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">
+            <i data-lucide="moon" class="w-4 h-4 dark:hidden"></i>
+            <i data-lucide="sun" class="w-4 h-4 hidden dark:block"></i>
+          </button>
+        </div>
+
+        <!-- Menu de Navegação -->
+        <nav class="p-3 flex lg:flex-col gap-1.5 overflow-x-auto">
+          <button onclick="switchTab('chat')" id="nav-chat" class="nav-btn active flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all whitespace-nowrap bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 shadow-xs">
+            <i data-lucide="message-square-text" class="w-4 h-4 shrink-0"></i>
+            <span>Chat & Consulta RAG</span>
+          </button>
+
+          <button onclick="switchTab('results')" id="nav-results" class="nav-btn flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-all whitespace-nowrap">
+            <i data-lucide="bar-chart-3" class="w-4 h-4 shrink-0"></i>
+            <span>Resultados & Avaliação</span>
+          </button>
+
+          <button onclick="switchTab('settings')" id="nav-settings" class="nav-btn flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-all whitespace-nowrap">
+            <i data-lucide="sliders-horizontal" class="w-4 h-4 shrink-0"></i>
+            <span>Configurações RAG & LLM</span>
+          </button>
+        </nav>
+
+        <!-- Resumo do Pipeline Ativo (Desktop) -->
+        <div class="hidden lg:block px-4 mt-4">
+          <div class="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-800 space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Pipeline Ativo</span>
+              <span class="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Online
+              </span>
+            </div>
+
+            <div class="space-y-2 text-xs">
+              <div class="flex items-center justify-between">
+                <span class="text-slate-500 dark:text-slate-400">Modelo LLM:</span>
+                <span id="sidebar-active-model" class="font-semibold text-slate-800 dark:text-slate-200 truncate max-w-[130px]">GPT-4o</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="text-slate-500 dark:text-slate-400">Retriever:</span>
+                <span id="sidebar-active-strategy" class="font-mono text-[11px] px-1.5 py-0.5 rounded bg-slate-200/70 dark:bg-slate-700 text-slate-700 dark:text-slate-300">Híbrida</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="text-slate-500 dark:text-slate-400">Top-K / Temp:</span>
+                <span id="sidebar-active-params" class="font-mono text-slate-700 dark:text-slate-300">K=4 • T=0.1</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="text-slate-500 dark:text-slate-400">Base Indexada:</span>
+                <span id="sidebar-doc-count" class="font-medium text-blue-600 dark:text-blue-400">6 documentos</span>
+              </div>
+            </div>
+
+            <button onclick="switchTab('settings')" class="w-full py-1.5 px-3 rounded-lg text-xs font-medium bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-blue-400 dark:hover:border-blue-500 text-slate-700 dark:text-slate-200 transition flex items-center justify-center gap-1.5">
+              <i data-lucide="cpu" class="w-3.5 h-3.5 text-blue-600"></i> Alterar Modelo / Parâmetros
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer Sidebar -->
+      <div class="hidden lg:flex items-center justify-between p-4 border-t border-slate-100 dark:border-slate-800/80">
+        <div class="text-xs text-slate-500 dark:text-slate-400">
+          <p class="font-medium text-slate-700 dark:text-slate-300">MDCC • Departamento de Computação</p>
+          <p class="text-[11px]">Universidade Federal do Ceará</p>
+        </div>
+        <button onclick="toggleDarkMode()" title="Alternar Tema Claro/Escuro" class="p-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+          <i data-lucide="moon" class="w-4 h-4 dark:hidden"></i>
+          <i data-lucide="sun" class="w-4 h-4 hidden dark:block"></i>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Conteúdo Principal -->
+    <main class="flex-1 flex flex-col min-w-0 h-[calc(100vh-73px)] lg:h-screen overflow-hidden">
+
+      <!-- ===================================================================== -->
+      <!-- ABA 1: CHAT & CONSULTA RAG                                            -->
+      <!-- ===================================================================== -->
+      <section id="tab-chat" class="tab-content flex-1 flex flex-col h-full overflow-hidden">
+        <!-- Header Contextual do Chat -->
+        <header class="px-6 py-3.5 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3 shrink-0">
+          <div class="flex items-center gap-3">
+            <div>
+              <h1 class="font-display font-bold text-base sm:text-lg text-slate-900 dark:text-white flex items-center gap-2">
+                Consulta Normativa Inteligente
+                <span class="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200/70 dark:border-emerald-800/60">
+                  RAG Verificado
+                </span>
+              </h1>
+              <p class="text-xs text-slate-500 dark:text-slate-400">Respostas fundamentadas no Regimento Interno, Resoluções e Editais do MDCC/UFC</p>
+            </div>
+          </div>
+
+          <!-- Seletor Rápido de Modelo no Header -->
+          <div class="flex items-center gap-2">
+            <div class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700">
+              <span class="w-2 h-2 rounded-full bg-blue-600"></span>
+              <label for="quick-model-select" class="text-xs text-slate-500 dark:text-slate-400 hidden sm:inline">LLM:</label>
+              <select id="quick-model-select" onchange="handleQuickModelChange(this.value)" class="bg-transparent text-xs font-semibold text-slate-800 dark:text-slate-100 focus:outline-none cursor-pointer">
+                <option value="gpt-4o" class="dark:bg-slate-900">GPT-4o (OpenAI)</option>
+                <option value="claude-3-5-sonnet" class="dark:bg-slate-900">Claude 3.5 Sonnet (Anthropic)</option>
+                <option value="gemini-1-5-pro" class="dark:bg-slate-900">Gemini 1.5 Pro (Google)</option>
+                <option value="llama-3-70b" class="dark:bg-slate-900">Llama 3 70B (Groq/Local)</option>
+              </select>
+            </div>
+            <button onclick="clearChat()" title="Nova conversa" class="p-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+              <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </header>
+
+        <!-- Área de Mensagens + Painel Lateral de Fontes Recuperadas (Desktop) -->
+        <div class="flex-1 flex overflow-hidden">
+          <!-- Coluna de Conversa -->
+          <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+            <div id="chat-messages" class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
+              <!-- Estado Inicial / Boas-vindas -->
+              <div id="welcome-banner" class="max-w-3xl mx-auto mt-4 sm:mt-8 p-6 sm:p-8 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-sm">
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-950/70 text-blue-700 dark:text-blue-300 text-xs font-medium mb-4">
+                  <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> Base Normativa MDCC Atualizada (2025/2026)
+                </div>
+                <h2 class="font-display font-bold text-xl sm:text-2xl text-slate-900 dark:text-white mb-2">
+                  Olá! Sobre qual norma do MDCC você gostaria de perguntar?
+                </h2>
+                <p class="text-sm text-slate-600 dark:text-slate-400 leading-relaxed mb-6">
+                  Eu consulto diretamente o <strong>Regimento Interno do MDCC</strong>, as <strong>Resoluções de Bolsas</strong>, normas de <strong>Qualificação, Defesa, Aproveitamento de Créditos</strong> e <strong>Estágio à Docência</strong>, exibindo as citações exatas de cada artigo.
+                </p>
+
+                <!-- Sugestões Rápidas -->
+                <div>
+                  <p class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">Perguntas Frequentes Sugeridas</p>
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <button onclick="askSuggestedQuestion('Quantos créditos em disciplinas são exigidos para o Mestrado e para o Doutorado no MDCC?')" class="text-left p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 hover:border-blue-400 dark:hover:border-blue-500 bg-slate-50/60 dark:bg-slate-800/40 hover:bg-blue-50/40 dark:hover:bg-blue-950/30 transition group">
+                      <div class="flex items-start justify-between gap-2">
+                        <span class="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-200 group-hover:text-blue-700 dark:group-hover:text-blue-300">Créditos exigidos no Mestrado e Doutorado</span>
+                        <i data-lucide="arrow-up-right" class="w-4 h-4 text-slate-400 group-hover:text-blue-600 shrink-0 mt-0.5"></i>
+                      </div>
+                    </button>
+
+                    <button onclick="askSuggestedQuestion('Quais são os prazos máximos para exame de qualificação e defesa de dissertação ou tese?')" class="text-left p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 hover:border-blue-400 dark:hover:border-blue-500 bg-slate-50/60 dark:bg-slate-800/40 hover:bg-blue-50/40 dark:hover:bg-blue-950/30 transition group">
+                      <div class="flex items-start justify-between gap-2">
+                        <span class="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-200 group-hover:text-blue-700 dark:group-hover:text-blue-300">Prazos máximos para qualificação e defesa</span>
+                        <i data-lucide="arrow-up-right" class="w-4 h-4 text-slate-400 group-hover:text-blue-600 shrink-0 mt-0.5"></i>
+                      </div>
+                    </button>
+
+                    <button onclick="askSuggestedQuestion('Quais publicações de artigos são exigidas para solicitar a defesa de Doutorado?')" class="text-left p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 hover:border-blue-400 dark:hover:border-blue-500 bg-slate-50/60 dark:bg-slate-800/40 hover:bg-blue-50/40 dark:hover:bg-blue-950/30 transition group">
+                      <div class="flex items-start justify-between gap-2">
+                        <span class="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-200 group-hover:text-blue-700 dark:group-hover:text-blue-300">Exigência de artigos para defesa de Doutorado</span>
+                        <i data-lucide="arrow-up-right" class="w-4 h-4 text-slate-400 group-hover:text-blue-600 shrink-0 mt-0.5"></i>
+                      </div>
+                    </button>
+
+                    <button onclick="askSuggestedQuestion('Como funciona o Estágio à Docência e quem é obrigado a cursar?')" class="text-left p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 hover:border-blue-400 dark:hover:border-blue-500 bg-slate-50/60 dark:bg-slate-800/40 hover:bg-blue-50/40 dark:hover:bg-blue-950/30 transition group">
+                      <div class="flex items-start justify-between gap-2">
+                        <span class="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-200 group-hover:text-blue-700 dark:group-hover:text-blue-300">Regras e obrigatoriedade do Estágio à Docência</span>
+                        <i data-lucide="arrow-up-right" class="w-4 h-4 text-slate-400 group-hover:text-blue-600 shrink-0 mt-0.5"></i>
+                      </div>
+                    </button>
+
+                    <button onclick="askSuggestedQuestion('Quais os critérios para manutenção e cancelamento de bolsas CAPES/CNPq/FUNCAP no MDCC?')" class="text-left p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 hover:border-blue-400 dark:hover:border-blue-500 bg-slate-50/60 dark:bg-slate-800/40 hover:bg-blue-50/40 dark:hover:bg-blue-950/30 transition group">
+                      <div class="flex items-start justify-between gap-2">
+                        <span class="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-200 group-hover:text-blue-700 dark:group-hover:text-blue-300">Critérios de manutenção e renovação de bolsas</span>
+                        <i data-lucide="arrow-up-right" class="w-4 h-4 text-slate-400 group-hover:text-blue-600 shrink-0 mt-0.5"></i>
+                      </div>
+                    </button>
+
+                    <button onclick="askSuggestedQuestion('Como solicitar aproveitamento de créditos de disciplinas cursadas como aluno especial ou em outro programa?')" class="text-left p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 hover:border-blue-400 dark:hover:border-blue-500 bg-slate-50/60 dark:bg-slate-800/40 hover:bg-blue-50/40 dark:hover:bg-blue-950/30 transition group">
+                      <div class="flex items-start justify-between gap-2">
+                        <span class="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-200 group-hover:text-blue-700 dark:group-hover:text-blue-300">Aproveitamento de créditos e disciplinas</span>
+                        <i data-lucide="arrow-up-right" class="w-4 h-4 text-slate-400 group-hover:text-blue-600 shrink-0 mt-0.5"></i>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Input de Pergunta -->
+            <div class="p-4 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 shrink-0">
+              <form id="chat-form" onsubmit="handleChatSubmit(event)" class="max-w-3xl mx-auto">
+                <div class="relative flex items-end gap-2 p-2 rounded-2xl bg-slate-100 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20 transition">
+                  <textarea
+                    id="chat-input"
+                    rows="1"
+                    placeholder="Pergunte sobre prazos, créditos, bolsas, proficiência, qualificação..."
+                    class="w-full bg-transparent px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none resize-none max-h-32"
+                    onkeydown="handleInputKeydown(event)"
+                  ></textarea>
+                  <button
+                    type="submit"
+                    id="send-btn"
+                    class="p-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white shadow-sm transition shrink-0 flex items-center justify-center"
+                  >
+                    <i data-lucide="send" class="w-4 h-4"></i>
+                  </button>
+                </div>
+                <div class="flex items-center justify-between mt-2 px-1 text-[11px] text-slate-400">
+                  <span>Enter para enviar • Shift+Enter para nova linha</span>
+                  <span>Citações extraídas via busca semântica nos documentos oficiais do MDCC</span>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <!-- Painel Lateral de Evidências / Chunks Recuperados (XL screens) -->
+          <aside id="evidence-drawer" class="hidden xl:flex w-80 border-l border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/50 flex-col overflow-hidden shrink-0">
+            <div class="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <i data-lucide="database" class="w-4 h-4 text-blue-600"></i>
+                <h3 class="font-display font-bold text-sm text-slate-800 dark:text-slate-100">Fontes Recuperadas (RAG)</h3>
+              </div>
+              <span id="evidence-count-badge" class="text-xs font-mono px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300">0</span>
+            </div>
+            <div id="evidence-list" class="flex-1 overflow-y-auto p-4 space-y-3">
+              <div class="text-center py-12 px-4">
+                <div class="w-10 h-10 rounded-full bg-slate-200/70 dark:bg-slate-800 mx-auto flex items-center justify-center text-slate-400 mb-3">
+                  <i data-lucide="search" class="w-5 h-5"></i>
+                </div>
+                <p class="text-xs font-medium text-slate-600 dark:text-slate-300">Nenhuma consulta realizada ainda</p>
+                <p class="text-[11px] text-slate-400 mt-1">Os trechos recuperados com seus respectivos scores de similaridade aparecerão aqui.</p>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <!-- ===================================================================== -->
+      <!-- ABA 2: RESULTADOS & AVALIAÇÃO (RAG METRICS)                           -->
+      <!-- ===================================================================== -->
+      <section id="tab-results" class="tab-content hidden flex-1 overflow-y-auto p-6 lg:p-8 space-y-6">
+        <div class="max-w-7xl mx-auto space-y-6">
+          <!-- Cabeçalho da Página -->
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h1 class="font-display font-bold text-2xl text-slate-900 dark:text-white">Resultados & Avaliação do Pipeline RAG</h1>
+              <p class="text-sm text-slate-500 dark:text-slate-400">Benchmarking de modelos LLM e métricas RAGAS (Fidelidade, Relevância e Precisão de Contexto) nas normas do MDCC.</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <button onclick="exportEvaluationCSV()" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 transition shadow-xs">
+                <i data-lucide="download" class="w-4 h-4"></i> Exportar Relatório CSV
+              </button>
+            </div>
+          </div>
+
+          <!-- KPI Cards -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div class="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs">
+              <div class="flex items-center justify-between text-slate-400 mb-2">
+                <span class="text-xs font-medium">Fidelidade (Faithfulness)</span>
+                <i data-lucide="shield-check" class="w-4 h-4 text-emerald-500"></i>
+              </div>
+              <div class="flex items-baseline gap-2">
+                <span id="kpi-faithfulness" class="font-display font-extrabold text-2xl text-slate-900 dark:text-white">96.4%</span>
+                <span class="text-xs font-medium text-emerald-600 dark:text-emerald-400">+1.8%</span>
+              </div>
+              <p class="text-[11px] text-slate-400 mt-1">Respostas ancoradas nos artigos</p>
+            </div>
+
+            <div class="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs">
+              <div class="flex items-center justify-between text-slate-400 mb-2">
+                <span class="text-xs font-medium">Recall@K (Retriever)</span>
+                <i data-lucide="target" class="w-4 h-4 text-blue-500"></i>
+              </div>
+              <div class="flex items-baseline gap-2">
+                <span id="kpi-recall" class="font-display font-extrabold text-2xl text-slate-900 dark:text-white">94.1%</span>
+                <span class="text-xs font-medium text-blue-600 dark:text-blue-400">Top-K=4</span>
+              </div>
+              <p class="text-[11px] text-slate-400 mt-1">Busca Híbrida (Vetorial + BM25)</p>
+            </div>
+
+            <div class="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs">
+              <div class="flex items-center justify-between text-slate-400 mb-2">
+                <span class="text-xs font-medium">Latência Média E2E</span>
+                <i data-lucide="zap" class="w-4 h-4 text-amber-500"></i>
+              </div>
+              <div class="flex items-baseline gap-2">
+                <span id="kpi-latency" class="font-display font-extrabold text-2xl text-slate-900 dark:text-white">1.38s</span>
+                <span class="text-xs font-medium text-emerald-600 dark:text-emerald-400">-0.22s</span>
+              </div>
+              <p class="text-[11px] text-slate-400 mt-1">Retrieval (180ms) + Geração</p>
+            </div>
+
+            <div class="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs">
+              <div class="flex items-center justify-between text-slate-400 mb-2">
+                <span class="text-xs font-medium">Taxa de Alucinação</span>
+                <i data-lucide="alert-triangle" class="w-4 h-4 text-rose-500"></i>
+              </div>
+              <div class="flex items-baseline gap-2">
+                <span id="kpi-hallucination" class="font-display font-extrabold text-2xl text-slate-900 dark:text-white">1.2%</span>
+                <span class="text-xs font-medium text-emerald-600 dark:text-emerald-400">Baixíssima</span>
+              </div>
+              <p class="text-[11px] text-slate-400 mt-1">Auditoria em 150 perguntas teste</p>
+            </div>
+
+            <div class="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs">
+              <div class="flex items-center justify-between text-slate-400 mb-2">
+                <span class="text-xs font-medium">Consultas Avaliadas</span>
+                <i data-lucide="layers" class="w-4 h-4 text-indigo-500"></i>
+              </div>
+              <div class="flex items-baseline gap-2">
+                <span id="kpi-total-queries" class="font-display font-extrabold text-2xl text-slate-900 dark:text-white">154</span>
+                <span class="text-xs font-medium text-indigo-600 dark:text-indigo-400">+Sessão</span>
+              </div>
+              <p class="text-[11px] text-slate-400 mt-1">Inclui consultas feitas agora</p>
+            </div>
+          </div>
+
+          <!-- Gráficos Comparativos entre Modelos -->
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs">
+              <div class="flex items-center justify-between mb-4">
+                <div>
+                  <h3 class="font-display font-bold text-base text-slate-900 dark:text-white">Qualidade RAGAS por Modelo LLM (%)</h3>
+                  <p class="text-xs text-slate-500 dark:text-slate-400">Comparação de Fidelidade, Relevância da Resposta e Precisão de Citação</p>
+                </div>
+              </div>
+              <div class="h-64">
+                <canvas id="ragasChart"></canvas>
+              </div>
+            </div>
+
+            <div class="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs">
+              <div class="flex items-center justify-between mb-4">
+                <div>
+                  <h3 class="font-display font-bold text-base text-slate-900 dark:text-white">Latência Média (s) vs. Custo Relativo</h3>
+                  <p class="text-xs text-slate-500 dark:text-slate-400">Tempo total de resposta (segundos) e custo estimado por 1k consultas</p>
+                </div>
+              </div>
+              <div class="h-64">
+                <canvas id="latencyChart"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tabela de Histórico de Consultas Avaliadas -->
+          <div class="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs overflow-hidden">
+            <div class="p-6 border-b border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h3 class="font-display font-bold text-base text-slate-900 dark:text-white">Histórico de Consultas & Auditoria RAG</h3>
+                <p class="text-xs text-slate-500 dark:text-slate-400">Registro em tempo real das perguntas submetidas, modelos utilizados e scores de aderência normativa</p>
+              </div>
+              <div class="flex items-center gap-2">
+                <select id="filter-history-model" onchange="renderHistoryTable()" class="px-3 py-1.5 rounded-xl text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 focus:outline-none">
+                  <option value="all">Todos os Modelos</option>
+                  <option value="GPT-4o">GPT-4o</option>
+                  <option value="Claude 3.5 Sonnet">Claude 3.5 Sonnet</option>
+                  <option value="Gemini 1.5 Pro">Gemini 1.5 Pro</option>
+                  <option value="Llama 3 70B">Llama 3 70B</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="overflow-x-auto">
+              <table class="w-full text-left border-collapse">
+                <thead>
+                  <tr class="border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/50 text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    <th class="py-3.5 px-5">Pergunta / Consulta</th>
+                    <th class="py-3.5 px-4">Modelo LLM</th>
+                    <th class="py-3.5 px-4">Fontes Recuperadas</th>
+                    <th class="py-3.5 px-4">Score RAGAS</th>
+                    <th class="py-3.5 px-4">Latência</th>
+                    <th class="py-3.5 px-5">Status</th>
+                  </tr>
+                </thead>
+                <tbody id="history-table-body" class="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
+                  <!-- Preenchido via JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================================================================== -->
+      <!-- ABA 3: CONFIGURAÇÕES DO PIPELINE RAG & LLM                            -->
+      <!-- ===================================================================== -->
+      <section id="tab-settings" class="tab-content hidden flex-1 overflow-y-auto p-6 lg:p-8">
+        <div class="max-w-6xl mx-auto space-y-8">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h1 class="font-display font-bold text-2xl text-slate-900 dark:text-white">Configurações do Pipeline RAG & LLM</h1>
+              <p class="text-sm text-slate-500 dark:text-slate-400">Selecione o modelo de linguagem, ajuste os hiperparâmetros de recuperação e gerencie a base normativa do MDCC.</p>
+            </div>
+            <button onclick="resetDefaultSettings()" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 transition">
+              <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Restaurar Padrões
+            </button>
+          </div>
+
+          <!-- Seção 1: Seleção do Modelo LLM -->
+          <div class="space-y-3">
+            <h2 class="font-display font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
+              <i data-lucide="cpu" class="w-4 h-4 text-blue-600"></i> 1. Escolha do Modelo Gerador (LLM)
+            </h2>
+            <div id="llm-cards-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <!-- Cards gerados dinamicamente via JS -->
+            </div>
+          </div>
+
+          <!-- Seção 2: Parâmetros do Retriever e do LLM -->
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Parâmetros do Retriever (RAG) -->
+            <div class="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 space-y-5">
+              <div class="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
+                <i data-lucide="search-code" class="w-4 h-4 text-indigo-600"></i>
+                <h3 class="font-display font-bold text-base text-slate-900 dark:text-white">Parâmetros do Retriever (Busca Semântica)</h3>
+              </div>
+
+              <!-- Estratégia de Busca -->
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2">Estratégia de Recuperação</label>
+                <div class="grid grid-cols-3 gap-2">
+                  <button type="button" onclick="setRetrievalStrategy('Híbrida')" id="strat-hibrida" class="strat-btn py-2 px-3 rounded-xl text-xs font-medium border border-blue-600 bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 transition">
+                    Híbrida (Vetorial + BM25)
+                  </button>
+                  <button type="button" onclick="setRetrievalStrategy('Vetorial')" id="strat-vetorial" class="strat-btn py-2 px-3 rounded-xl text-xs font-medium border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition">
+                    Apenas Vetorial
+                  </button>
+                  <button type="button" onclick="setRetrievalStrategy('Re-ranking')" id="strat-reranking" class="strat-btn py-2 px-3 rounded-xl text-xs font-medium border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition">
+                    Híbrida + Cross-Encoder
+                  </button>
+                </div>
+              </div>
+
+              <!-- Slider Top-K -->
+              <div>
+                <div class="flex justify-between text-xs mb-1.5">
+                  <span class="font-semibold text-slate-700 dark:text-slate-300">Top-K Chunks Recuperados</span>
+                  <span id="val-topk" class="font-mono font-bold text-blue-600 dark:text-blue-400">4 trechos</span>
+                </div>
+                <input type="range" id="slider-topk" min="1" max="8" step="1" value="4" oninput="updateConfigParam('topK', this.value)" class="w-full bg-slate-200 dark:bg-slate-700 rounded-lg">
+                <p class="text-[11px] text-slate-400 mt-1">Quantidade máxima de artigos/trechos enviados ao contexto do LLM.</p>
+              </div>
+
+              <!-- Slider Threshold -->
+              <div>
+                <div class="flex justify-between text-xs mb-1.5">
+                  <span class="font-semibold text-slate-700 dark:text-slate-300">Threshold de Similaridade Mínima</span>
+                  <span id="val-threshold" class="font-mono font-bold text-blue-600 dark:text-blue-400">0.72</span>
+                </div>
+                <input type="range" id="slider-threshold" min="0.50" max="0.95" step="0.01" value="0.72" oninput="updateConfigParam('threshold', this.value)" class="w-full bg-slate-200 dark:bg-slate-700 rounded-lg">
+                <p class="text-[11px] text-slate-400 mt-1">Descarta trechos com score de cosseno abaixo deste limiar para evitar ruído.</p>
+              </div>
+            </div>
+
+            <!-- Parâmetros de Geração do LLM -->
+            <div class="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 space-y-5">
+              <div class="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
+                <i data-lucide="sliders" class="w-4 h-4 text-emerald-600"></i>
+                <h3 class="font-display font-bold text-base text-slate-900 dark:text-white">Hiperparâmetros & System Prompt</h3>
+              </div>
+
+              <!-- Slider Temperatura -->
+              <div>
+                <div class="flex justify-between text-xs mb-1.5">
+                  <span class="font-semibold text-slate-700 dark:text-slate-300">Temperatura (Criatividade vs. Rigor)</span>
+                  <span id="val-temp" class="font-mono font-bold text-emerald-600 dark:text-emerald-400">0.10</span>
+                </div>
+                <input type="range" id="slider-temp" min="0.0" max="1.0" step="0.05" value="0.1" oninput="updateConfigParam('temperature', this.value)" class="w-full bg-slate-200 dark:bg-slate-700 rounded-lg">
+                <p class="text-[11px] text-slate-400 mt-1">Valores próximos a 0.0 garantem respostas estritamente literais às resoluções.</p>
+              </div>
+
+              <!-- Max Tokens -->
+              <div>
+                <div class="flex justify-between text-xs mb-1.5">
+                  <span class="font-semibold text-slate-700 dark:text-slate-300">Max Tokens de Saída</span>
+                  <span id="val-tokens" class="font-mono font-bold text-emerald-600 dark:text-emerald-400">1024 tokens</span>
+                </div>
+                <input type="range" id="slider-tokens" min="256" max="4096" step="128" value="1024" oninput="updateConfigParam('maxTokens', this.value)" class="w-full bg-slate-200 dark:bg-slate-700 rounded-lg">
+              </div>
+
+              <!-- System Prompt -->
+              <div>
+                <label for="system-prompt-input" class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">System Prompt do Assistente MDCC</label>
+                <textarea id="system-prompt-input" rows="3" onchange="updateConfigParam('systemPrompt', this.value)" class="w-full p-3 rounded-xl text-xs font-mono bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 focus:outline-none focus:border-blue-500">Você é o Assistente Oficial de Normas do MDCC/UFC. Responda exclusivamente com base nos trechos recuperados do Regimento Interno e Resoluções. Sempre cite o número do artigo ou resolução entre colchetes [Fonte X]. Se a informação não constar nas normas, declare explicitamente.</textarea>
+              </div>
+            </div>
+          </div>
+
+          <!-- Seção 3: Base de Conhecimento Indexada (Vector Store) -->
+          <div class="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
+              <div>
+                <h3 class="font-display font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
+                  <i data-lucide="folder-check" class="w-4 h-4 text-blue-600"></i> Base de Conhecimento Vetorizada (Qdrant / Embeddings text-embedding-3-large)
+                </h3>
+                <p class="text-xs text-slate-500 dark:text-slate-400">Documentos oficiais do MDCC indexados em chunks semânticos de 512 tokens com overlap de 64 tokens.</p>
+              </div>
+
+              <button onclick="simulateDocumentUpload()" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-xs transition shrink-0">
+                <i data-lucide="upload-cloud" class="w-4 h-4"></i> Simular Indexação de Novo PDF
+              </button>
+            </div>
+
+            <div id="knowledge-base-list" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <!-- Documentos renderizados via JS -->
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- ======================================================================= -->
+  <!-- JAVASCRIPT: BASE DE CONHECIMENTO MDCC, MOTOR RAG SIMULADO E UI          -->
+  <!-- ======================================================================= -->
+  <script>
+    // 1. BASE DE CONHECIMENTO NORMATIVA REALISTA DO MDCC (UFC)
+    const MDCC_KNOWLEDGE_BASE = [
+      {
+        id: 'doc-regimento-creditos',
+        docTitle: 'Regimento Interno do MDCC - UFC (Resolução CONSUNI)',
+        article: 'Art. 24 e Art. 25 — Integralização de Créditos',
+        category: 'Regimento Interno',
+        chunksCount: 48,
+        updatedAt: '12/02/2025',
+        scoreBase: 0.94,
+        keywords: ['créditos', 'disciplinas', 'mestrado', 'doutorado', 'integralização', 'carga horária', 'obrigatórias'],
+        content: `Art. 24. Para a obtenção do grau de Mestre em Ciência da Computação, o discente deverá integralizar o mínimo de 24 (vinte e quatro) créditos em disciplinas de pós-graduação, além de 6 (seis) créditos referentes à elaboração e defesa da Dissertação, totalizando 30 créditos.\n\nArt. 25. Para a obtenção do grau de Doutor em Ciência da Computação, o discente deverá integralizar o mínimo de 36 (trinta e seis) créditos em disciplinas de pós-graduação (podendo aproveitar até 24 créditos obtidos no Mestrado mediante aprovação do Colegiado), além de 12 (doze) créditos referentes à Tese, totalizando 48 créditos.`
+      },
+      {
+        id: 'doc-regimento-prazos',
+        docTitle: 'Regimento Interno do MDCC - UFC',
+        article: 'Art. 31 a Art. 34 — Prazos de Qualificação e Defesa',
+        category: 'Regimento Interno',
+        chunksCount: 36,
+        updatedAt: '12/02/2025',
+        scoreBase: 0.93,
+        keywords: ['prazo', 'prazos', 'qualificação', 'defesa', 'meses', 'prorrogação', 'dissertação', 'tese', 'exame'],
+        content: `Art. 31. O curso de Mestrado terá duração mínima de 12 (doze) meses e máxima de 24 (vinte e quatro) meses, devendo o Exame de Qualificação de Mestrado ser realizado até o 15º (décimo quinto) mês a contar da primeira matrícula.\n\nArt. 32. O curso de Doutorado terá duração mínima de 24 (vinte e quatro) meses e máxima de 48 (quarenta e oito) meses, devendo o Exame de Qualificação de Doutorado ser realizado até o 24º (vigésimo quarto) mês.\n\nArt. 34. Em casos excepcionais devidamente justificados pelo orientador, o Colegiado do MDCC poderá conceder prorrogação de prazo de até 6 (seis) meses para o Mestrado e até 12 (doze) meses para o Doutorado.`
+      },
+      {
+        id: 'doc-resolucao-publicacoes',
+        docTitle: 'Resolução MDCC Nº 02/2024 — Requisitos para Defesa',
+        article: 'Art. 2º e Art. 3º — Produção Científica Exigida',
+        category: 'Resolução Interna',
+        chunksCount: 22,
+        updatedAt: '18/08/2024',
+        scoreBase: 0.95,
+        keywords: ['artigo', 'artigos', 'publicação', 'publicações', 'qualis', 'periódico', 'conferência', 'defesa', 'doutorado', 'mestrado'],
+        content: `Art. 2º. Para solicitar a defesa de Dissertação de Mestrado, o discente deverá comprovar a submissão de, no mínimo, 1 (um) artigo científico relacionado ao tema da dissertação em veículo classificado nos estratos A1 a B4 do Qualis-CAPES da área de Ciência da Computação, em coautoria com seu orientador.\n\nArt. 3º. Para solicitar a defesa de Tese de Doutorado, o discente deverá comprovar o aceite ou publicação de, no mínimo, 2 (dois) artigos científicos em veículos de impacto, sendo obrigatoriamente pelo menos 1 (um) em periódico ou conferência classificados nos estratos superiores (Qualis A1, A2 ou A3) da área de Ciência da Computação.`
+      },
+      {
+        id: 'doc-resolucao-docencia',
+        docTitle: 'Resolução MDCC Nº 04/2023 — Estágio à Docência',
+        article: 'Art. 1º a Art. 5º — Estágio de Docência na Graduação',
+        category: 'Resolução Interna',
+        chunksCount: 19,
+        updatedAt: '10/11/2023',
+        scoreBase: 0.91,
+        keywords: ['estágio', 'docência', 'bolsista', 'capes', 'graduação', 'aula', 'obrigatório', 'dispensa'],
+        content: `Art. 1º. O Estágio à Docência é atividade curricular obrigatória para todos os discentes de Doutorado do MDCC (independentemente de bolsa) e para todos os discentes de Mestrado contemplados com bolsas de agências de fomento (CAPES, CNPq ou FUNCAP).\n\nArt. 3º. A carga horária mínima corresponde a 1 (um) semestre letivo (4 créditos / 64 horas) em disciplinas dos cursos de graduação em Ciência da Computação, Engenharia de Computação ou Sistemas de Informação da UFC, sob supervisão do professor responsável pela disciplina.`
+      },
+      {
+        id: 'doc-resolucao-bolsas',
+        docTitle: 'Normativa Comissão de Bolsas MDCC Nº 01/2025',
+        article: 'Art. 6º a Art. 9º — Critérios de Manutenção e Cancelamento',
+        category: 'Comissão de Bolsas',
+        chunksCount: 31,
+        updatedAt: '05/03/2025',
+        scoreBase: 0.92,
+        keywords: ['bolsa', 'bolsas', 'capes', 'cnpq', 'funcap', 'manutenção', 'cancelamento', 'reprovação', 'ira', 'conceito', 'relatório'],
+        content: `Art. 6º. A manutenção da bolsa de estudos está condicionada ao desempenho acadêmico satisfatório do discente, avaliado semestralmente pela Comissão de Bolsas do MDCC.\n\nArt. 7º. Implicará no cancelamento imediato da bolsa: (I) obtenção de conceito inferior a B (ou reprovação) em qualquer disciplina; (II) não entrega do Relatório Semestral de Atividades no prazo estipulado; (III) atraso injustificado no Exame de Qualificação; ou (IV) acúmulo de vínculo empregatício não autorizado pelas portarias vigentes da CAPES/CNPq.`
+      },
+      {
+        id: 'doc-aproveitamento-proficiencia',
+        docTitle: 'Regimento Interno MDCC & Instrução Normativa 03/2024',
+        article: 'Art. 27 e Art. 29 — Aproveitamento de Créditos e Proficiência',
+        category: 'Instrução Normativa',
+        chunksCount: 27,
+        updatedAt: '20/01/2025',
+        scoreBase: 0.90,
+        keywords: ['aproveitamento', 'especial', 'aluno especial', 'proficiência', 'inglês', 'língua estrangeira', 'transferência', 'validação'],
+        content: `Art. 27. Poderão ser aproveitados créditos obtidos em disciplinas cursadas na condição de Aluno Especial no MDCC ou em outros Programas de Pós-Graduação stricto sensu reconhecidos pela CAPES (conceito igual ou superior a 4), até o limite máximo de 12 (doze) créditos para o Mestrado e 16 (dezesseis) créditos para o Doutorado, desde que cursadas há no máximo 5 (cinco) anos e com conceito mínimo B.\n\nArt. 29. A comprovação de proficiência em Língua Inglesa é requisito obrigatório para a inscrição no Exame de Qualificação, podendo ser atestada mediante exames reconhecidos (TOEFL, IELTS, Cambridge ou exame aplicado pela Casa de Cultura Britânica da UFC).`
+      }
+    ];
+
+    // 2. MODELOS LLM CONFIGURÁVEIS
+    const LLM_MODELS = [
+      {
+        id: 'gpt-4o',
+        name: 'GPT-4o',
+        provider: 'OpenAI',
+        contextWindow: '128k tokens',
+        latencyAvg: 1.38,
+        faithfulness: 96.4,
+        relevance: 95.1,
+        citationAccuracy: 97.2,
+        costPer1k: '$2.50',
+        badge: 'Recomendado',
+        description: 'Excelente equilíbrio entre precisão na citação de artigos normativos e baixa latência.'
+      },
+      {
+        id: 'claude-3-5-sonnet',
+        name: 'Claude 3.5 Sonnet',
+        provider: 'Anthropic',
+        contextWindow: '200k tokens',
+        latencyAvg: 1.52,
+        faithfulness: 97.8,
+        relevance: 96.3,
+        citationAccuracy: 98.1,
+        costPer1k: '$3.00',
+        badge: 'Maior Fidelidade',
+        description: 'Menor taxa de alucinação em textos jurídicos e regimentos acadêmicos complexos.'
+      },
+      {
+        id: 'gemini-1-5-pro',
+        name: 'Gemini 1.5 Pro',
+        provider: 'Google DeepMind',
+        contextWindow: '2M tokens',
+        latencyAvg: 1.45,
+        faithfulness: 95.6,
+        relevance: 94.8,
+        citationAccuracy: 96.0,
+        costPer1k: '$1.75',
+        badge: 'Contexto Extenso',
+        description: 'Ideal quando Top-K é elevado, analisando múltiplas resoluções simultaneamente.'
+      },
+      {
+        id: 'llama-3-70b',
+        name: 'Llama 3 70B',
+        provider: 'Meta / Groq Local',
+        contextWindow: '8k tokens',
+        latencyAvg: 0.74,
+        faithfulness: 92.1,
+        relevance: 91.5,
+        citationAccuracy: 91.8,
+        costPer1k: '$0.59',
+        badge: 'Ultra Rápido / Open',
+        description: 'Inferência ultrarrápida e opção hospedável localmente nos servidores da UFC.'
+      }
+    ];
+
+    // 3. ESTADO GLOBAL DA APLICAÇÃO
+    const appState = {
+      activeTab: 'chat',
+      selectedModelId: 'gpt-4o',
+      temperature: 0.1,
+      maxTokens: 1024,
+      topK: 4,
+      threshold: 0.72,
+      retrievalStrategy: 'Híbrida',
+      systemPrompt: 'Você é o Assistente Oficial de Normas do MDCC/UFC. Responda exclusivamente com base nos trechos recuperados do Regimento Interno e Resoluções. Sempre cite o número do artigo ou resolução entre colchetes [Fonte X]. Se a informação não constar nas normas, declare explicitamente.',
+      lastRetrievedChunks: [],
+      evaluationHistory: [
+        {
+          id: 'eval-101',
+          question: 'Qual o prazo máximo para o Exame de Qualificação no Doutorado?',
+          model: 'Claude 3.5 Sonnet',
+          sources: ['Regimento Interno MDCC (Art. 32)'],
+          ragasScore: 0.98,
+          latency: '1.48s',
+          status: 'Validado'
+        },
+        {
+          id: 'eval-102',
+          question: 'Quantos artigos Qualis A1-A3 são necessários para defender tese?',
+          model: 'GPT-4o',
+          sources: ['Resolução MDCC Nº 02/2024 (Art. 3º)'],
+          ragasScore: 0.97,
+          latency: '1.31s',
+          status: 'Validado'
+        },
+        {
+          id: 'eval-103',
+          question: 'Bolsista de mestrado precisa fazer Estágio à Docência?',
+          model: 'Gemini 1.5 Pro',
+          sources: ['Resolução MDCC Nº 04/2023 (Art. 1º)'],
+          ragasScore: 0.95,
+          latency: '1.42s',
+          status: 'Validado'
+        },
+        {
+          id: 'eval-104',
+          question: 'Qual o limite de créditos aproveitados como aluno especial no Mestrado?',
+          model: 'Llama 3 70B',
+          sources: ['Regimento Interno MDCC (Art. 27)'],
+          ragasScore: 0.92,
+          latency: '0.69s',
+          status: 'Validado'
+        }
+      ],
+      totalQueriesCount: 154
+    };
+
+    let currentModalChunk = null;
+    let ragasChartInstance = null;
+    let latencyChartInstance = null;
+
+    // 4. INICIALIZAÇÃO
+    document.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+      renderModelCards();
+      renderKnowledgeBaseList();
+      renderHistoryTable();
+      updateSidebarPipelineSummary();
+      initCharts();
+    });
+
+    // 5. NAVEGAÇÃO ENTRE ABAS
+    function switchTab(tabId) {
+      appState.activeTab = tabId;
+      document.querySelectorAll('.tab-content').forEach(sec => sec.classList.add('hidden'));
+      document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+
+      document.querySelectorAll('.nav-btn').forEach(btn => {
+        btn.classList.remove('bg-blue-50', 'text-blue-700', 'dark:bg-blue-950/60', 'dark:text-blue-300', 'shadow-xs');
+        btn.classList.add('text-slate-600', 'dark:text-slate-400');
+      });
+
+      const activeBtn = document.getElementById(`nav-${tabId}`);
+      activeBtn.classList.remove('text-slate-600', 'dark:text-slate-400');
+      activeBtn.classList.add('bg-blue-50', 'text-blue-700', 'dark:bg-blue-950/60', 'dark:text-blue-300', 'shadow-xs');
+
+      if (tabId === 'results') {
+        updateChartsTheme();
+      }
+      lucide.createIcons();
+    }
+
+    function toggleDarkMode() {
+      document.documentElement.classList.toggle('dark');
+      updateChartsTheme();
+    }
+
+    // 6. NOTIFICAÇÕES TOAST
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      const colors = type === 'success'
+        ? 'bg-emerald-600 text-white'
+        : 'bg-slate-900 dark:bg-slate-800 text-white border border-slate-700';
+
+      toast.className = `${colors} px-4 py-2.5 rounded-xl shadow-lg text-xs font-medium flex items-center gap-2 pointer-events-auto transition-all duration-300 transform translate-y-2 opacity-0`;
+      toast.innerHTML = `<i data-lucide="check-circle-2" class="w-4 h-4 shrink-0"></i><span>${message}</span>`;
+      container.appendChild(toast);
+      lucide.createIcons();
+
+      requestAnimationFrame(() => {
+        toast.classList.remove('translate-y-2', 'opacity-0');
+      });
+
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-2');
+        setTimeout(() => toast.remove(), 300);
+      }, 2800);
+    }
+
+    // 7. MOTOR DE BUSCA SEMÂNTICA SIMULADA (RETRIEVER)
+    function retrieveRelevantChunks(query) {
+      const normalized = query.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      const queryWords = normalized.split(/\W+/).filter(w => w.length > 2);
+
+      const scored = MDCC_KNOWLEDGE_BASE.map(doc => {
+        let matchCount = 0;
+        const docTextNorm = (doc.docTitle + ' ' + doc.article + ' ' + doc.keywords.join(' ') + ' ' + doc.content)
+          .toLowerCase()
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '');
+
+        doc.keywords.forEach(kw => {
+          const kwNorm = kw.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+          if (normalized.includes(kwNorm)) matchCount += 2.5;
+        });
+
+        queryWords.forEach(word => {
+          if (docTextNorm.includes(word)) matchCount += 0.6;
+        });
+
+        // Ajuste leve conforme estratégia selecionada
+        let strategyBonus = 0;
+        if (appState.retrievalStrategy === 'Re-ranking') strategyBonus = 0.03;
+        if (appState.retrievalStrategy === 'Vetorial') strategyBonus = -0.02;
+
+        // Calcula score realista entre 0.58 e 0.97
+        let rawScore = Math.min(0.97, 0.60 + (matchCount * 0.045) + strategyBonus);
+        if (matchCount === 0) rawScore = 0.56;
+
+        return {
+          ...doc,
+          similarity: Number(rawScore.toFixed(2))
+        };
+      });
+
+      // Filtra pelo threshold configurado e ordena pelo score
+      const filtered = scored
+        .filter(item => item.similarity >= appState.threshold)
+        .sort((a, b) => b.similarity - a.similarity)
+        .slice(0, appState.topK);
+
+      return filtered;
+    }
+
+    // 8. GERADOR DE RESPOSTA ESTRUTURADA COM BASE NOS CHUNKS RECUPERADOS
+    function generateStructuredRAGResponse(query, chunks, model) {
+      if (chunks.length === 0) {
+        return {
+          html: `
+            <div class="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 text-amber-900 dark:text-amber-200 text-sm">
+              <strong>Nenhum trecho atingiu o limiar de similaridade (${appState.threshold.toFixed(2)}).</strong><br/>
+              Com os parâmetros atuais do Retriever, não encontrei artigos com confiança suficiente na base indexada do MDCC para responder sem risco de alucinação. Tente reduzir o <em>Threshold de Similaridade</em> na aba de Configurações ou reformule sua dúvida usando termos normativos (ex: <em>créditos, qualificação, bolsas, estágio à docência</em>).
+            </div>
+          `,
+          ragasScore: 0.65
+        };
+      }
+
+      const q = query.toLowerCase();
+      let answerBody = '';
+
+      // Mapeamento inteligente baseado nos chunks recuperados
+      const hasCreditos = chunks.some(c => c.id === 'doc-regimento-creditos');
+      const hasPrazos = chunks.some(c => c.id === 'doc-regimento-prazos');
+      const hasPublicacoes = chunks.some(c => c.id === 'doc-resolucao-publicacoes');
+      const hasDocencia = chunks.some(c => c.id === 'doc-resolucao-docencia');
+      const hasBolsas = chunks.some(c => c.id === 'doc-resolucao-bolsas');
+      const hasAproveitamento = chunks.some(c => c.id === 'doc-aproveitamento-proficiencia');
+
+      const citeTag = (docId) => {
+        const idx = chunks.findIndex(c => c.id === docId);
+        if (idx === -1) return '';
+        return `<button onclick="openSourceModalById('${docId}')" class="citation-badge inline-flex items-center gap-1 px-1.5 py-0.5 mx-0.5 rounded-md text-[11px] font-mono font-semibold bg-blue-100 hover:bg-blue-200 text-blue-800 dark:bg-blue-900/60 dark:hover:bg-blue-800 dark:text-blue-200 border border-blue-200 dark:border-blue-700 cursor-pointer" title="Clique para ver o trecho original">[Fonte ${idx + 1}]</button>`;
+      };
+
+      if ((q.includes('crédito') || q.includes('credito') || q.includes('disciplina')) && !q.includes('aproveit') && hasCreditos) {
+        answerBody = `
+          <p class="mb-2.5">De acordo com o <strong>Regimento Interno do MDCC/UFC</strong>, a exigência de integralização de créditos varia conforme o nível do curso ${citeTag('doc-regimento-creditos')}:</p>
+          <ul class="list-disc pl-5 space-y-1.5 mb-3">
+            <li><strong>Mestrado:</strong> Mínimo de <strong>24 créditos</strong> em disciplinas de pós-graduação + <strong>6 créditos</strong> referentes à Dissertação, totalizando <strong>30 créditos</strong> ${citeTag('doc-regimento-creditos')}.</li>
+            <li><strong>Doutorado:</strong> Mínimo de <strong>36 créditos</strong> em disciplinas de pós-graduação + <strong>12 créditos</strong> referentes à Tese, totalizando <strong>48 créditos</strong>. Discentes egressos de Mestrado podem solicitar o aproveitamento de até 24 créditos mediante aprovação do Colegiado ${citeTag('doc-regimento-creditos')}.</li>
+          </ul>
+        `;
+      } else if ((q.includes('prazo') || q.includes('qualifica') || q.includes('defesa') || q.includes('meses')) && !q.includes('artigo') && !q.includes('publica') && hasPrazos) {
+        answerBody = `
+          <p class="mb-2.5">Os prazos regulamentares do MDCC para realização do Exame de Qualificação e Defesa final são os seguintes ${citeTag('doc-regimento-prazos')}:</p>
+          <ul class="list-disc pl-5 space-y-1.5 mb-3">
+            <li><strong>Mestrado:</strong> Duração mínima de 12 e máxima de <strong>24 meses</strong>. O Exame de Qualificação deve ocorrer até o <strong>15º mês</strong> a contar da primeira matrícula ${citeTag('doc-regimento-prazos')}.</li>
+            <li><strong>Doutorado:</strong> Duração mínima de 24 e máxima de <strong>48 meses</strong>. O Exame de Qualificação deve ocorrer até o <strong>24º mês</strong> ${citeTag('doc-regimento-prazos')}.</li>
+            <li><strong>Prorrogação:</strong> Em casos excepcionais justificados pelo orientador, o Colegiado pode conceder até <strong>6 meses</strong> (Mestrado) ou <strong>12 meses</strong> (Doutorado) ${citeTag('doc-regimento-prazos')}.</li>
+          </ul>
+        `;
+      } else if ((q.includes('artigo') || q.includes('publica') || q.includes('qualis')) && hasPublicacoes) {
+        answerBody = `
+          <p class="mb-2.5">Conforme a <strong>Resolução MDCC Nº 02/2024</strong>, os requisitos mínimos de produção científica para solicitação de defesa são ${citeTag('doc-resolucao-publicacoes')}:</p>
+          <ul class="list-disc pl-5 space-y-1.5 mb-3">
+            <li><strong>Mestrado:</strong> Comprovação de <strong>submissão de pelo menos 1 (um) artigo</strong> relacionado ao tema da dissertação em veículo classificado nos estratos <strong>A1 a B4 do Qualis-CAPES</strong> (Ciência da Computação), em coautoria com o orientador ${citeTag('doc-resolucao-publicacoes')}.</li>
+            <li><strong>Doutorado:</strong> Comprovação de <strong>aceite ou publicação de pelo menos 2 (dois) artigos</strong>, sendo obrigatoriamente <strong>ao menos 1 (um) em estrato superior (Qualis A1, A2 ou A3)</strong> da área de Ciência da Computação ${citeTag('doc-resolucao-publicacoes')}.</li>
+          </ul>
+        `;
+      } else if ((q.includes('docência') || q.includes('docencia') || q.includes('estágio') || q.includes('estagio')) && hasDocencia) {
+        answerBody = `
+          <p class="mb-2.5">O <strong>Estágio à Docência</strong> no MDCC é regulamentado pela <strong>Resolução MDCC Nº 04/2023</strong> ${citeTag('doc-resolucao-docencia')}:</p>
+          <ul class="list-disc pl-5 space-y-1.5 mb-3">
+            <li><strong>Obrigatoriedade:</strong> É obrigatório para <strong>todos os discentes de Doutorado</strong> (bolsistas ou não) e para os <strong>discentes de Mestrado bolsistas</strong> (CAPES, CNPq ou FUNCAP) ${citeTag('doc-resolucao-docencia')}.</li>
+            <li><strong>Carga Horária:</strong> Corresponde a <strong>1 semestre letivo (4 créditos / 64h)</strong> atuando em disciplinas dos cursos de graduação da área de Computação da UFC sob supervisão docente ${citeTag('doc-resolucao-docencia')}.</li>
+          </ul>
+        `;
+      } else if ((q.includes('bolsa') || q.includes('capes') || q.includes('funcap') || q.includes('cnpq')) && hasBolsas) {
+        answerBody = `
+          <p class="mb-2.5">Segundo a <strong>Normativa da Comissão de Bolsas MDCC Nº 01/2025</strong>, a manutenção da bolsa depende de avaliação semestral ${citeTag('doc-resolucao-bolsas')}:</p>
+          <ul class="list-disc pl-5 space-y-1.5 mb-3">
+            <li><strong>Critérios de Cancelamento Imediato:</strong> Obtenção de conceito inferior a <strong>B</strong> (ou reprovação) em disciplina; não entrega do Relatório Semestral no prazo; atraso injustificado na Qualificação; ou acúmulo de vínculo empregatício não autorizado pelas portarias vigentes ${citeTag('doc-resolucao-bolsas')}.</li>
+          </ul>
+        `;
+      } else if ((q.includes('aproveit') || q.includes('especial') || q.includes('proficiência') || q.includes('proficiencia') || q.includes('inglês')) && hasAproveitamento) {
+        answerBody = `
+          <p class="mb-2.5">Sobre o <strong>aproveitamento de créditos e proficiência em língua estrangeira</strong> ${citeTag('doc-aproveitamento-proficiencia')}:</p>
+          <ul class="list-disc pl-5 space-y-1.5 mb-3">
+            <li><strong>Aproveitamento de Disciplinas:</strong> É permitido aproveitar créditos cursados como Aluno Especial ou em programas stricto sensu reconhecidos pela CAPES (nota ≥ 4), com conceito mínimo <strong>B</strong> e cursados há no máximo <strong>5 anos</strong>, respeitando o teto de <strong>12 créditos no Mestrado</strong> e <strong>16 créditos no Doutorado</strong> ${citeTag('doc-aproveitamento-proficiencia')}.</li>
+            <li><strong>Proficiência em Inglês:</strong> É exigida obrigatoriamente antes da inscrição no Exame de Qualificação, aceitando-se certificados como TOEFL, IELTS, Cambridge ou exame da Casa de Cultura Britânica da UFC ${citeTag('doc-aproveitamento-proficiencia')}.</li>
+          </ul>
+        `;
+      } else {
+        // Síntese dinâmica baseada nos chunks mais relevantes recuperados
+        const bullets = chunks.map((chunk, i) => `
+          <li>
+            <strong>${chunk.docTitle} (${chunk.article}):</strong> ${chunk.content.split('\n')[0]} ${citeTag(chunk.id)}
+          </li>
+        `).join('');
+
+        answerBody = `
+          <p class="mb-2.5">Com base nos <strong>${chunks.length} trechos normativos recuperados</strong> do acervo oficial do MDCC/UFC, seguem as disposições aplicáveis à sua consulta:</p>
+          <ul class="list-disc pl-5 space-y-2 mb-3">${bullets}</ul>
+        `;
+      }
+
+      // Nota estilística sutil do modelo selecionado
+      const modelNote = model.id === 'claude-3-5-sonnet'
+        ? 'Análise verificada com rigor normativo estrito (Claude 3.5 Sonnet).'
+        : model.id === 'llama-3-70b'
+        ? 'Resposta sintetizada em modo de baixa latência (Llama 3 70B).'
+        : `Resposta fundamentada exclusivamente nos ${chunks.length} documentos recuperados.`;
+
+      const ragasScore = Number((0.92 + (chunks[0].similarity - 0.70) * 0.25).toFixed(2));
+
+      return {
+        html: `
+          <div class="text-sm leading-relaxed text-slate-700 dark:text-slate-200">
+            ${answerBody}
+            <div class="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-400">
+              <span>${modelNote}</span>
+              <span class="font-mono text-emerald-600 dark:text-emerald-400">Fidelidade RAGAS: ${(ragasScore * 100).toFixed(0)}%</span>
+            </div>
+          </div>
+        `,
+        ragasScore: Math.min(0.99, ragasScore)
+      };
+    }
+
+    // 9. INTERAÇÃO DO CHAT
+    function handleInputKeydown(e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        handleChatSubmit(e);
+      }
+    }
+
+    function askSuggestedQuestion(questionText) {
+      const input = document.getElementById('chat-input');
+      input.value = questionText;
+      handleChatSubmit(new Event('submit'));
+    }
+
+    function handleChatSubmit(e) {
+      if (e) e.preventDefault();
+      const input = document.getElementById('chat-input');
+      const query = input.value.trim();
+      if (!query) return;
+
+      const welcome = document.getElementById('welcome-banner');
+      if (welcome) welcome.classList.add('hidden');
+
+      input.value = '';
+      appendUserMessage(query);
+
+      const loadingId = appendLoadingMessage();
+      const activeModel = LLM_MODELS.find(m => m.id === appState.selectedModelId) || LLM_MODELS[0];
+
+      // Simula tempo realista de retrieval + inferência do modelo selecionado
+      const simulatedDelay = Math.max(550, Math.round(activeModel.latencyAvg * 650));
+
+      setTimeout(() => {
+        removeLoadingMessage(loadingId);
+
+        const retrievedChunks = retrieveRelevantChunks(query);
+        appState.lastRetrievedChunks = retrievedChunks;
+
+        const actualLatency = (activeModel.latencyAvg + (Math.random() * 0.22 - 0.1)).toFixed(2) + 's';
+        const responseObj = generateStructuredRAGResponse(query, retrievedChunks, activeModel);
+
+        appendAssistantMessage(responseObj.html, retrievedChunks, activeModel, actualLatency);
+        updateEvidenceDrawer(retrievedChunks);
+
+        // Registra no histórico de avaliações (Aba Resultados)
+        appState.totalQueriesCount += 1;
+        appState.evaluationHistory.unshift({
+          id: 'eval-' + Date.now(),
+          question: query,
+          model: activeModel.name,
+          sources: retrievedChunks.length > 0 ? retrievedChunks.map(c => c.article.split('—')[0].trim()) : ['Nenhuma fonte acima do threshold'],
+          ragasScore: responseObj.ragasScore,
+          latency: actualLatency,
+          status: retrievedChunks.length > 0 ? 'Validado' : 'Sem Contexto'
+        });
+
+        document.getElementById('kpi-total-queries').textContent = appState.totalQueriesCount;
+        renderHistoryTable();
+      }, simulatedDelay);
+    }
+
+    function appendUserMessage(text) {
+      const container = document.getElementById('chat-messages');
+      const div = document.createElement('div');
+      div.className = 'max-w-3xl mx-auto flex justify-end';
+      div.innerHTML = `
+        <div class="max-w-[85%] sm:max-w-[75%] px-4 py-3 rounded-2xl rounded-tr-sm bg-blue-600 text-white text-sm shadow-xs leading-relaxed">
+          ${escapeHTML(text)}
+        </div>
+      `;
+      container.appendChild(div);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function appendLoadingMessage() {
+      const container = document.getElementById('chat-messages');
+      const id = 'loading-' + Date.now();
+      const activeModel = LLM_MODELS.find(m => m.id === appState.selectedModelId);
+      const div = document.createElement('div');
+      div.id = id;
+      div.className = 'max-w-3xl mx-auto flex items-start gap-3';
+      div.innerHTML = `
+        <div class="w-8 h-8 rounded-xl bg-blue-100 dark:bg-blue-950 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 mt-0.5">
+          <i data-lucide="bot" class="w-4 h-4"></i>
+        </div>
+        <div class="flex-1 p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-2">
+          <div class="flex items-center gap-2 text-xs font-medium text-blue-600 dark:text-blue-400 animate-pulse-subtle">
+            <i data-lucide="search" class="w-3.5 h-3.5"></i>
+            <span>Buscando trechos nos editais e regimentos (Busca ${appState.retrievalStrategy}, Top-K=${appState.topK})...</span>
+          </div>
+          <div class="text-[11px] text-slate-400">Sintetizando resposta com <strong>${activeModel.name}</strong> (Temp: ${appState.temperature})</div>
+        </div>
+      `;
+      container.appendChild(div);
+      lucide.createIcons();
+      container.scrollTop = container.scrollHeight;
+      return id;
+    }
+
+    function removeLoadingMessage(id) {
+      const el = document.getElementById(id);
+      if (el) el.remove();
+    }
+
+    function appendAssistantMessage(htmlContent, chunks, model, latency) {
+      const container = document.getElementById('chat-messages');
+      const div = document.createElement('div');
+      div.className = 'max-w-3xl mx-auto flex items-start gap-3';
+
+      const sourcePills = chunks.map((chunk, index) => `
+        <button onclick="openSourceModalById('${chunk.id}')" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] bg-slate-100 hover:bg-blue-50 dark:bg-slate-800 dark:hover:bg-blue-950/60 text-slate-700 dark:text-slate-300 hover:text-blue-700 dark:hover:text-blue-300 border border-slate-200/80 dark:border-slate-700 transition">
+          <span class="font-mono font-bold text-blue-600 dark:text-blue-400">[${index + 1}]</span>
+          <span class="truncate max-w-[170px]">${chunk.article.split('—')[0].trim()}</span>
+          <span class="font-mono text-[10px] text-emerald-600 dark:text-emerald-400">${(chunk.similarity * 100).toFixed(0)}%</span>
+        </button>
+      `).join('');
+
+      div.innerHTML = `
+        <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 text-white flex items-center justify-center shrink-0 mt-0.5 shadow-xs">
+          <i data-lucide="sparkles" class="w-4 h-4"></i>
+        </div>
+        <div class="flex-1 min-w-0 p-5 rounded-2xl rounded-tl-sm bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs space-y-3">
+          <div class="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-slate-100 dark:border-slate-800/80">
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-bold text-slate-800 dark:text-slate-100">${model.name}</span>
+              <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">${appState.retrievalStrategy} • K=${chunks.length}</span>
+            </div>
+            <span class="text-[11px] font-mono text-slate-400 flex items-center gap-1">
+              <i data-lucide="clock" class="w-3 h-3"></i> ${latency}
+            </span>
+          </div>
+
+          ${htmlContent}
+
+          ${chunks.length > 0 ? `
+            <div class="pt-2">
+              <p class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Fontes Citadas (clique para auditar)</p>
+              <div class="flex flex-wrap gap-1.5">
+                ${sourcePills}
+              </div>
+            </div>
+          ` : ''}
+        </div>
+      `;
+
+      container.appendChild(div);
+      lucide.createIcons();
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function updateEvidenceDrawer(chunks) {
+      const list = document.getElementById('evidence-list');
+      const badge = document.getElementById('evidence-count-badge');
+      badge.textContent = chunks.length;
+
+      if (chunks.length === 0) {
+        list.innerHTML = `
+          <div class="text-center py-10 px-4">
+            <p class="text-xs font-medium text-amber-600 dark:text-amber-400">Nenhum chunk acima do threshold (${appState.threshold.toFixed(2)})</p>
+            <p class="text-[11px] text-slate-400 mt-1">Ajuste o limiar na aba Configurações se desejar recuperar trechos mais amplos.</p>
+          </div>
+        `;
+        return;
+      }
+
+      list.innerHTML = chunks.map((chunk, i) => `
+        <div onclick="openSourceModalById('${chunk.id}')" class="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-blue-400 dark:hover:border-blue-500 cursor-pointer transition shadow-2xs space-y-2">
+          <div class="flex items-center justify-between gap-2">
+            <span class="text-[11px] font-mono font-bold px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300">Fonte ${i + 1}</span>
+            <span class="text-[11px] font-mono font-semibold text-emerald-600 dark:text-emerald-400">Sim: ${chunk.similarity.toFixed(2)}</span>
+          </div>
+          <p class="text-xs font-bold text-slate-800 dark:text-slate-100 line-clamp-1">${chunk.article}</p>
+          <p class="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-3 leading-relaxed">${chunk.content}</p>
+          <div class="text-[10px] text-blue-600 dark:text-blue-400 font-medium flex items-center gap-1 pt-1">
+            <span>Abrir trecho completo</span>
+            <i data-lucide="external-link" class="w-3 h-3"></i>
+          </div>
+        </div>
+      `).join('');
+      lucide.createIcons();
+    }
+
+    function clearChat() {
+      const container = document.getElementById('chat-messages');
+      const welcome = document.getElementById('welcome-banner');
+      container.innerHTML = '';
+      if (welcome) {
+        welcome.classList.remove('hidden');
+        container.appendChild(welcome);
+      }
+      document.getElementById('evidence-count-badge').textContent = '0';
+      document.getElementById('evidence-list').innerHTML = `
+        <div class="text-center py-12 px-4">
+          <p class="text-xs font-medium text-slate-600 dark:text-slate-300">Conversa reiniciada</p>
+          <p class="text-[11px] text-slate-400 mt-1">Faça uma nova pergunta para inspecionar os trechos recuperados.</p>
+        </div>
+      `;
+      showToast('Histórico do chat limpo.');
+    }
+
+    // 10. MODAL DE FONTE DOCUMENTAL
+    function openSourceModalById(docId) {
+      const chunk = appState.lastRetrievedChunks.find(c => c.id === docId)
+        || MDCC_KNOWLEDGE_BASE.find(c => c.id === docId);
+      if (!chunk) return;
+
+      currentModalChunk = chunk;
+      document.getElementById('modal-doc-title').textContent = chunk.docTitle;
+      document.getElementById('modal-doc-meta').textContent = `${chunk.article} • Atualizado em ${chunk.updatedAt}`;
+      document.getElementById('modal-score-badge').textContent = `Similaridade Semântica: ${(chunk.similarity || chunk.scoreBase).toFixed(2)}`;
+      document.getElementById('modal-strategy-badge').textContent = `Estratégia: ${appState.retrievalStrategy}`;
+      document.getElementById('modal-doc-content').textContent = chunk.content;
+
+      const modal = document.getElementById('source-modal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeSourceModal() {
+      const modal = document.getElementById('source-modal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    function copyModalCitation() {
+      if (!currentModalChunk) return;
+      const textToCopy = `${currentModalChunk.docTitle} (${currentModalChunk.article}): "${currentModalChunk.content}"`;
+      const tempInput = document.createElement('textarea');
+      tempInput.value = textToCopy;
+      document.body.appendChild(tempInput);
+      tempInput.select();
+      document.execCommand('copy');
+      document.body.removeChild(tempInput);
+      showToast('Citação copiada para a área de transferência!', 'success');
+    }
+
+    // 11. CONFIGURAÇÕES DO PIPELINE & MODELOS
+    function renderModelCards() {
+      const grid = document.getElementById('llm-cards-grid');
+      grid.innerHTML = LLM_MODELS.map(model => {
+        const isSelected = model.id === appState.selectedModelId;
+        return `
+          <div onclick="selectModel('${model.id}')" class="cursor-pointer p-5 rounded-2xl border-2 transition-all flex flex-col justify-between ${
+            isSelected
+              ? 'border-blue-600 bg-blue-50/40 dark:bg-blue-950/30 shadow-sm'
+              : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-blue-300 dark:hover:border-slate-700'
+          }">
+            <div>
+              <div class="flex items-center justify-between gap-2 mb-2">
+                <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">${model.provider}</span>
+                <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                  isSelected
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
+                }">${isSelected ? 'Ativo' : model.badge}</span>
+              </div>
+              <h3 class="font-display font-bold text-base text-slate-900 dark:text-white mb-1">${model.name}</h3>
+              <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed mb-4">${model.description}</p>
+            </div>
+
+            <div class="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-1.5 text-[11px]">
+              <div class="flex justify-between">
+                <span class="text-slate-400">Janela Contexto:</span>
+                <span class="font-mono font-medium text-slate-700 dark:text-slate-300">${model.contextWindow}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-slate-400">Latência Est.:</span>
+                <span class="font-mono font-medium text-slate-700 dark:text-slate-300">${model.latencyAvg}s</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-slate-400">Fidelidade RAGAS:</span>
+                <span class="font-mono font-semibold text-emerald-600 dark:text-emerald-400">${model.faithfulness}%</span>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function selectModel(modelId) {
+      appState.selectedModelId = modelId;
+      document.getElementById('quick-model-select').value = modelId;
+      renderModelCards();
+      updateSidebarPipelineSummary();
+
+      const model = LLM_MODELS.find(m => m.id === modelId);
+      document.getElementById('kpi-faithfulness').textContent = model.faithfulness + '%';
+      document.getElementById('kpi-latency').textContent = model.latencyAvg + 's';
+      showToast(`Modelo alterado para ${model.name}`, 'success');
+    }
+
+    function handleQuickModelChange(modelId) {
+      selectModel(modelId);
+    }
+
+    function setRetrievalStrategy(strategy) {
+      appState.retrievalStrategy = strategy;
+      document.querySelectorAll('.strat-btn').forEach(btn => {
+        btn.classList.remove('border-blue-600', 'bg-blue-50', 'text-blue-700', 'dark:bg-blue-950/60', 'dark:text-blue-300');
+        btn.classList.add('border-slate-200', 'dark:border-slate-700', 'text-slate-600', 'dark:text-slate-400');
+      });
+
+      const idMap = { 'Híbrida': 'strat-hibrida', 'Vetorial': 'strat-vetorial', 'Re-ranking': 'strat-reranking' };
+      const active = document.getElementById(idMap[strategy]);
+      if (active) {
+        active.classList.remove('border-slate-200', 'dark:border-slate-700', 'text-slate-600', 'dark:text-slate-400');
+        active.classList.add('border-blue-600', 'bg-blue-50', 'text-blue-700', 'dark:bg-blue-950/60', 'dark:text-blue-300');
+      }
+      updateSidebarPipelineSummary();
+      showToast(`Estratégia de busca: ${strategy}`);
+    }
+
+    function updateConfigParam(param, value) {
+      if (param === 'topK') {
+        appState.topK = parseInt(value, 10);
+        document.getElementById('val-topk').textContent = `${appState.topK} trecho${appState.topK > 1 ? 's' : ''}`;
+      } else if (param === 'threshold') {
+        appState.threshold = parseFloat(value);
+        document.getElementById('val-threshold').textContent = appState.threshold.toFixed(2);
+      } else if (param === 'temperature') {
+        appState.temperature = parseFloat(value);
+        document.getElementById('val-temp').textContent = appState.temperature.toFixed(2);
+      } else if (param === 'maxTokens') {
+        appState.maxTokens = parseInt(value, 10);
+        document.getElementById('val-tokens').textContent = `${appState.maxTokens} tokens`;
+      } else if (param === 'systemPrompt') {
+        appState.systemPrompt = value;
+        showToast('System Prompt atualizado!');
+      }
+      updateSidebarPipelineSummary();
+    }
+
+    function updateSidebarPipelineSummary() {
+      const model = LLM_MODELS.find(m => m.id === appState.selectedModelId);
+      document.getElementById('sidebar-active-model').textContent = model ? model.name : 'GPT-4o';
+      document.getElementById('sidebar-active-strategy').textContent = appState.retrievalStrategy;
+      document.getElementById('sidebar-active-params').textContent = `K=${appState.topK} • T=${appState.temperature.toFixed(1)}`;
+      document.getElementById('sidebar-doc-count').textContent = `${MDCC_KNOWLEDGE_BASE.length} documentos`;
+    }
+
+    function resetDefaultSettings() {
+      selectModel('gpt-4o');
+      setRetrievalStrategy('Híbrida');
+      document.getElementById('slider-topk').value = 4;
+      updateConfigParam('topK', 4);
+      document.getElementById('slider-threshold').value = 0.72;
+      updateConfigParam('threshold', 0.72);
+      document.getElementById('slider-temp').value = 0.1;
+      updateConfigParam('temperature', 0.1);
+      document.getElementById('slider-tokens').value = 1024;
+      updateConfigParam('maxTokens', 1024);
+      showToast('Configurações restauradas para o padrão recomendado.');
+    }
+
+    function renderKnowledgeBaseList() {
+      const container = document.getElementById('knowledge-base-list');
+      container.innerHTML = MDCC_KNOWLEDGE_BASE.map(doc => `
+        <div class="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40 flex items-start justify-between gap-3">
+          <div class="min-w-0">
+            <div class="flex items-center gap-2 mb-1">
+              <span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">Indexado</span>
+              <span class="text-[11px] font-mono text-slate-400">${doc.chunksCount} chunks</span>
+            </div>
+            <h4 class="text-xs font-bold text-slate-800 dark:text-slate-100 truncate">${doc.docTitle}</h4>
+            <p class="text-[11px] text-slate-500 dark:text-slate-400 truncate">${doc.article}</p>
+          </div>
+          <button onclick="openSourceModalById('${doc.id}')" class="px-2.5 py-1.5 rounded-lg text-[11px] font-medium bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-blue-500 text-slate-700 dark:text-slate-200 shrink-0 transition">
+            Inspecionar
+          </button>
+        </div>
+      `).join('');
+    }
+
+    function simulateDocumentUpload() {
+      const exists = MDCC_KNOWLEDGE_BASE.some(d => d.id === 'doc-edital-selecao-2026');
+      if (exists) {
+        showToast('O Edital de Seleção MDCC 2026 já está vetorizado na base.');
+        return;
+      }
+      MDCC_KNOWLEDGE_BASE.push({
+        id: 'doc-edital-selecao-2026',
+        docTitle: 'Edital Seleção Mestrado e Doutorado MDCC 2026.1',
+        article: 'Item 4 e Item 7 — Etapas de Seleção e Pontuação',
+        category: 'Edital de Seleção',
+        chunksCount: 42,
+        updatedAt: 'Hoje',
+        scoreBase: 0.93,
+        keywords: ['seleção', 'edital', 'ingresso', 'inscrição', 'currículo', 'lattes', 'projeto'],
+        content: `Item 4. O processo seletivo para ingresso no MDCC compreende avaliação de histórico escolar, currículo Lattes comprovado, cartas de recomendação e, para o Doutorado, defesa de anteprojeto de pesquisa.\n\nItem 7. Candidatos aprovados que desejarem concorrer às cotas de bolsas institucionais deverão manifestar interesse no ato da matrícula curricular.`
+      });
+      renderKnowledgeBaseList();
+      updateSidebarPipelineSummary();
+      showToast('Novo PDF chunked e indexado no Vector Store (+42 chunks)!', 'success');
+    }
+
+    // 12. ABA DE RESULTADOS: TABELA E GRÁFICOS
+    function renderHistoryTable() {
+      const filterModel = document.getElementById('filter-history-model').value;
+      const tbody = document.getElementById('history-table-body');
+
+      const filtered = appState.evaluationHistory.filter(item =>
+        filterModel === 'all' ? true : item.model === filterModel
+      );
+
+      tbody.innerHTML = filtered.map(row => {
+        const scorePct = (row.ragasScore * 100).toFixed(0);
+        const isOk = row.status === 'Validado';
+        return `
+          <tr class="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition">
+            <td class="py-3.5 px-5 font-medium text-slate-800 dark:text-slate-200 max-w-xs truncate" title="${escapeHTML(row.question)}">
+              ${escapeHTML(row.question)}
+            </td>
+            <td class="py-3.5 px-4">
+              <span class="px-2 py-0.5 rounded-md font-mono text-[11px] bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                ${row.model}
+              </span>
+            </td>
+            <td class="py-3.5 px-4 text-slate-500 dark:text-slate-400 max-w-[200px] truncate">
+              ${row.sources.join(', ')}
+            </td>
+            <td class="py-3.5 px-4">
+              <div class="flex items-center gap-2">
+                <div class="w-16 h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
+                  <div class="h-full ${row.ragasScore >= 0.9 ? 'bg-emerald-500' : 'bg-amber-500'}" style="width: ${scorePct}%"></div>
+                </div>
+                <span class="font-mono font-semibold text-slate-700 dark:text-slate-200">${scorePct}%</span>
+              </div>
+            </td>
+            <td class="py-3.5 px-4 font-mono text-slate-500 dark:text-slate-400">${row.latency}</td>
+            <td class="py-3.5 px-5">
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium ${
+                isOk
+                  ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300'
+                  : 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300'
+              }">
+                <span class="w-1.5 h-1.5 rounded-full ${isOk ? 'bg-emerald-500' : 'bg-amber-500'}"></span>
+                ${row.status}
+              </span>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function initCharts() {
+      const isDark = document.documentElement.classList.contains('dark');
+      const textColor = isDark ? '#94a3b8' : '#475569';
+      const gridColor = isDark ? 'rgba(148, 163, 184, 0.1)' : 'rgba(148, 163, 184, 0.2)';
+
+      const ctxRagas = document.getElementById('ragasChart').getContext('2d');
+      ragasChartInstance = new Chart(ctxRagas, {
+        type: 'bar',
+        data: {
+          labels: LLM_MODELS.map(m => m.name),
+          datasets: [
+            {
+              label: 'Fidelidade (%)',
+              data: LLM_MODELS.map(m => m.faithfulness),
+              backgroundColor: '#2563eb',
+              borderRadius: 6
+            },
+            {
+              label: 'Relevância (%)',
+              data: LLM_MODELS.map(m => m.relevance),
+              backgroundColor: '#10b981',
+              borderRadius: 6
+            },
+            {
+              label: 'Precisão de Citação (%)',
+              data: LLM_MODELS.map(m => m.citationAccuracy),
+              backgroundColor: '#6366f1',
+              borderRadius: 6
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: {
+              min: 85,
+              max: 100,
+              ticks: { color: textColor, font: { size: 11 } },
+              grid: { color: gridColor }
+            },
+            x: {
+              ticks: { color: textColor, font: { size: 11 } },
+              grid: { display: false }
+            }
+          },
+          plugins: {
+            legend: {
+              labels: { color: textColor, font: { size: 11 } }
+            }
+          }
+        }
+      });
+
+      const ctxLatency = document.getElementById('latencyChart').getContext('2d');
+      latencyChartInstance = new Chart(ctxLatency, {
+        type: 'bar',
+        data: {
+          labels: LLM_MODELS.map(m => m.name),
+          datasets: [
+            {
+              label: 'Latência Média (segundos)',
+              data: LLM_MODELS.map(m => m.latencyAvg),
+              backgroundColor: ['#3b82f6', '#8b5cf6', '#06b6d4', '#f59e0b'],
+              borderRadius: 8
+            }
+          ]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: {
+              beginAtZero: true,
+              max: 2.0,
+              ticks: { color: textColor, font: { size: 11 } },
+              grid: { color: gridColor }
+            },
+            y: {
+              ticks: { color: textColor, font: { size: 11 } },
+              grid: { display: false }
+            }
+          },
+          plugins: {
+            legend: {
+              labels: { color: textColor, font: { size: 11 } }
+            }
+          }
+        }
+      });
+    }
+
+    function updateChartsTheme() {
+      if (!ragasChartInstance || !latencyChartInstance) return;
+      const isDark = document.documentElement.classList.contains('dark');
+      const textColor = isDark ? '#94a3b8' : '#475569';
+      const gridColor = isDark ? 'rgba(148, 163, 184, 0.1)' : 'rgba(148, 163, 184, 0.2)';
+
+      [ragasChartInstance, latencyChartInstance].forEach(chart => {
+        chart.options.scales.x.ticks.color = textColor;
+        chart.options.scales.y.ticks.color = textColor;
+        if (chart.options.scales.x.grid) chart.options.scales.x.grid.color = gridColor;
+        if (chart.options.scales.y.grid) chart.options.scales.y.grid.color = gridColor;
+        chart.options.plugins.legend.labels.color = textColor;
+        chart.update();
+      });
+    }
+
+    function exportEvaluationCSV() {
+      const headers = ['ID,Pergunta,Modelo,Score_RAGAS,Latencia,Status'];
+      const rows = appState.evaluationHistory.map(r =>
+        `"${r.id}","${r.question.replace(/"/g, '""')}","${r.model}",${r.ragasScore},"${r.latency}","${r.status}"`
+      );
+      const csvContent = 'data:text/csv;charset=utf-8,' + [headers, ...rows].join('\n');
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement('a');
+      link.setAttribute('href', encodedUri);
+      link.setAttribute('download', 'avaliacao_rag_mdcc_ufc.csv');
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      showToast('Relatório CSV de avaliação exportado!', 'success');
+    }
+
+    function escapeHTML(str) {
+      return str.replace(/[&<>'"]/g, tag => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        "'": '&#39;',
+        '"': '&quot;'
+      }[tag]));
+    }
+  </script>
+</body>
+</html>

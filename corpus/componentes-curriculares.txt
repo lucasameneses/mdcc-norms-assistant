@@ -1,0 +1,110 @@
+A matriz curricular do MDCC abrange um conjunto de componentes curriculares definidos como disciplinas ou atividades acadêmicas, aos quais são atribuídos créditos e cuja integralização faz parte dos requisitos necessários à obtenção do diploma.
+As disciplinas ofertadas pelo MDCC são de caráter optativo e enquadradas em 4 grupos, denominados de A, B, C e D. As disciplinas do grupo A são consideradas disciplinas de base teórica para a Ciência da Computação, área de concentração do MDCC, ou seja, de interesse transversal às suas linhas de pesquisa. Portanto, todos os alunos do MDCC são obrigados a cursar pelo menos 01 disciplina desse grupo. As disciplinas do grupo B são consideradas de base para as linhas de pesquisa do MDCC. É importante ressaltar que todas as disciplinas dos grupos A e B foram ofertadas durante o atual quadriênio. As disciplinas do grupo C são consideradas de base para os temas de pesquisa das dissertações de mestrado e teses de doutorado do MDCC. As disciplinas do grupo D são disciplinas de tópicos especiais, cujas ementas não são fixas, sendo definidas de acordo com as necessidades específicas de formação em temas de pesquisa das dissertações e teses do MDCC. No início de 2024, foi realizada a atualização da bibliografia das disciplinas ofertadas neste quadriênio, com a inclusão de itens mais atuais, dos últimos 10 anos.
+Acesse as ementas das disciplinas no seguinte link: https://si3.ufc.br/sigaa/public/componentes/busca_componentes.jsf?nivel=S&aba=p-stricto , selecionando a unidade responsável: “PROGRAMA DE PÓS-GRADUAÇÃO EM CIÊNCIA DA COMPUTAÇÃO – FORTALEZA”.
+1) Disciplinas por Grupo
+Grupo A
+CKP7544 – Aspectos Formais da Computação – 64h M/D
+CKP7477 – Construção e Análise de Algoritmos – 64h M/D
+CKP8077 – Estruturas de Dados – 64h M/D
+CKP7466 – Probabilidade e Processos Estocásticos – 64h M/D
+Grupo B
+CKP8122 – Álgebra Linear Computacional – 64h M/D
+CKP8277 – Aprendizagem Automática – 64h M/D
+CKP8555 – Avaliação de Desempenho de Sistemas Computacionais – 64h M/D
+CKP7788 – Engenharia de Software – 64h M/D
+CKP8088 – Geometria Computacional – 64h M/D
+CKP8211 – Programação Linear – 64h M/D
+CKP7500 – Sistemas Distribuídos e Redes de Comunicação – 64h M/D
+CKP8322 – Teoria dos Grafos – 64h M/D
+Grupo C
+CKP8099 – Algoritmos Aproximativos – 64h M/D
+CKP8133 – Algoritmos Paralelos e Distribuídos I – 64h M/D
+CKP8266 – Algoritmos Paralelos e Distribuídos II – 64h M/D
+CKP8511 – Algoritmos Probabilísticos – 64h M/D
+CKP8100 – Animação por Computador – 64h M/D
+CKP9013 – Aprendizagem de Máquina Probabilística – 64h M/D
+CKP8111 – Arquitetura de Computadores – 64h M/D
+CKP7833 – Automatização do Raciocínio – 64h M/D
+CKP7944 – Banco de Dados – 64h M/D
+CKP8200 – Banco de Dados Avançados – 64h M/D
+CKP8599 – Complexidade Computacional – 64h M/D
+CKP8611 – Complexidade Descritiva – 64h M/D
+CKP7644 – Computação Gráfica I – 64h M/D
+CKP7655 – Computação Gráfica II – 64h M/D
+CKP8622 – Computação Móvel e Ubíqua – 64h M/D
+CKP8255 – Decomposições de Grafos – 64h M/D
+CKP8677 – Desenvolvimento de Software para Nuvem – 64h M/D
+CKP8644 – Engenharia de Ontologias – 64h M/D
+CKP9016 – Engenharia de Requisitos – 64h M/D
+CKP7733 – Equações Diferenciais para Computação – 64h M/D
+CKP7577 – Especificação Formal e Validação de Protocolo – 64h M/D
+CKP7555 – Gerenciamento de Redes – 64h M/D
+CKP8166 – Implementação de Sistemas de Bancos de Dados – 64h M/D
+CKP7822 – Inteligência Artificial – 64h M/D
+CKP8666 – Interação Humano-Computador – 64h M/D
+CKP9011 – Introdução à Ciência de Dados – 64h M/D
+CKP7799 – Linguagem de Programação – 64h M/D
+CKP8466 – Lógica da Pesquisa Científica – 64h M/D
+CKP8155 – Lógicas Não Clássicas – 64h M/D
+CKP9000 – Manutenção e Evolução de Software – 64h M/D
+CKP7744 – Métodos das Diferenças Finitas – 64h M/D
+CKP7755 – Métodos dos Elementos Finitos – 64h M/D
+CKP7766 – Métodos Híbridos Analítico-Numéricos – 64h M/D
+CKP7955 – Modelagem e Projeto de Banco de Dados – 64h M/D
+CKP8288 – Modelagem em Eng. do Petróleo e Fluido-Térmica – 64h M/D
+CKP8199 – Modelagem Geométrica – 64h M/D
+CKP9017 – Modelos de Linguagem de Grande Escala – 64h M/D
+CKP7599 – Otimização Combinatória – 64h M/D
+CKP9015 – Privacidade de Dados – 64h M/D
+CKP8488 – Processamento de Alto Desempenho – 64h M/D
+CKP8177 – Processamento Digital de Imagens – 64h M/D
+CKP8477 – Programação Concorrente – 64h M/D
+CKP7866 – Programação Heurística – 64h M/D
+CKP8244 – Programação Inteira – 64h M/D
+CKP8188 – Programação Simbólica – 64h M/D
+CKP8655 – Qualidade de Software – 64h M/D
+CKP8522 – Realidade Virtual e Aumentada – 64h M/D
+CKP7566 – Redes de Alta Velocidade – 64h M/D
+CKP8222 – Redes Móveis e Sem Fio – 64h M/D
+CKP8500 – Reutilização de Software – 64h M/D
+CKP8233 – Segurança em Redes – 64h M/D
+CKP8299 – Sistemas de Bancos de Dados Distribuídos – 64h M/D
+CKP7811 – Teoria da Computação – 64h M/D
+CKP8300 – Teoria da Prova – 64h M/D
+CKP8311 – Teoria das Categorias – 64h M/D
+CKP8600 – Teoria dos Modelos Finitos – 64h M/D
+CKP9012 – Verificação e Validação de Software – 64h M/D
+CKP8533 – Visualização Científica – 64h M/D
+CKP9014 – Visualização de Dados – 64h M/D
+CKP8633 – Web Semântica – 64h M/D
+Grupo D
+CKP8333 – Tópicos Especiais em Combinatória – 64h M/D
+CKP8344 – Tópicos Especiais em Computação Gráfica I – 64h M/D
+CKP8355 – Tópicos Especiais em Computação Gráfica II – 64h M/D
+CKP8544 – Tópicos Avançados em Computação Gráfica III – 64h M/D
+CKP8366 – Tópicos Especiais em Lógica I – 64h M/D
+CKP8377 – Tópicos Especiais em Lógica II – 64h M/D
+CKP8388 – Tópicos Especiais em Matemática Computacional I – 64h M/D
+CKP8399 – Tópicos Especiais em Matemática Computacional II – 64h M/D
+CKP8400 – Tópicos Especiais em Otimização Combinatória – 64h M/D
+CKP8499 – Tópicos Especiais em Programação Concorrente e Distribuição Paralela – 64h M/D
+CKP8411 – Tópicos Especiais em Redes e Sist. Distribuídos I – 64h M/D
+CKP8422 – Tópicos Especiais em Redes e Sist. Distribuídos II – 64h M/D
+CKP8433 – Tópicos Especiais em Sistemas de Informação I – 64h M/D
+CKP8444 – Tópicos Especiais em Sistemas de Informação II – 64h M/D
+CKP8455 – Tópicos Especiais em Teoria dos Grafos – 64h M/D
+2) Atividades (Obrigatórias)
+Mestrado:
+CKP0127 – Estágio de Docência I – 64h
+CKP0074 – Proficiência – 16h
+CKP0016 – Qualificação – 16h
+CKP8577 – Proposta de Dissertação de Mestrado – 32h
+CKP7999 – Dissertação – 96h
+Doutorado:
+CKP0183 – Estágio de Docência II – 64h
+CKP0200 – Estágio de Docência III – 64h
+CKP5555 – Proficiência em Língua Estrangeira – 16h
+CKP6666 – Qualificação – 16h
+CKP8588 – Proposta de Tese de Doutorado – 32h
+CKP8999 – Tese – 192h
+OBS: Disciplinas de outros programas, normalmente, são enquadradas no grupo C, exceto disciplinas de Tópicos, que são do grupo D.

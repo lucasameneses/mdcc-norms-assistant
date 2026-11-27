@@ -1,0 +1,29 @@
+[project]
+name = "mdcc-norms-assistant"
+version = "0.1.0"
+description = "A RAG assistant over the MDCC/UFC graduate program rules, with its evaluation harness"
+requires-python = ">=3.12"
+dependencies = [
+  "langchain-core>=1.8",
+  "langchain-text-splitters>=1.1",
+  "langchain-ollama>=1.1",
+  "langchain-postgres>=0.0.19",
+  "psycopg[binary]>=3.3",
+  "pymupdf>=1.26",
+  "streamlit>=1.50",
+  "pandas>=2.3",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

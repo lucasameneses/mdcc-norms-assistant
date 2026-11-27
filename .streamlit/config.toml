@@ -1,0 +1,18 @@
+# Dark theme mirroring the mockup assistente_de_normas_mdcc_rag.html (Tailwind slate + blue).
+[theme]
+base = "dark"
+primaryColor = "#2563EB"
+backgroundColor = "#020617"
+secondaryBackgroundColor = "#0F172A"
+textColor = "#E2E8F0"
+font = "sans serif"
+
+[server]
+headless = true
+address = "127.0.0.1"
+
+[browser]
+gatherUsageStats = false
+
+[client]
+toolbarMode = "viewer"

@@ -1,0 +1,9 @@
+O(a) estudante deverá encaminhar solicitação formal à coordenação para o aproveitamento de disciplinas, juntando histórico e ementas, até sessenta dias após o início do período letivo no qual está matriculado.
+Modelo de solicitação de aproveitamento
+A documentação deverá ser encaminhada ao e-mail secretaria@mdcc.ufc.br
+OBSERVAÇÕES
+1) APENAS disciplinas cursadas em Programas Stricto Sensu podem ser aproveitadas;
+2) Caso as disciplinas tenham sido realizadas no MDCC, não é necessário encaminhar as ementas;
+3) O(a) aluno(a) não pode estar matriculado(a) na mesma disciplina cujo aproveitamento foi solicitado;
+4) As solicitações são analisadas por uma comissão e cadastradas no SIGAA somente no fim do semestre;
+5) Não é possível solicitar aproveitamento de atividades (Proficiência / Qualificação / Proposta / Estágio de Docência (I, II ou II) / Dissertação ou Tese).
