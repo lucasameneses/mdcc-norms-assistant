@@ -91,8 +91,31 @@ def split_document(pages: list[Page], max_chars: int = 1500, overlap: int = 150)
     return chunks
 
 
-def split_corpus(pages: list[Page]) -> list[Document]:
+def split_fixed(pages: list[Page], size: int) -> list[Document]:
+    """Baseline for comparison: cut each page by size only, ignoring articles (no `article` label)."""
+    source = pages[0].source
+    splitter = RecursiveCharacterTextSplitter(chunk_size=size, chunk_overlap=size // 7)
+    chunks = []
+    for page in pages:
+        metadata = {
+            "doc_id": source.doc_id, "title": source.title, "url": source.url,
+            "doc_date": source.doc_date, "article": None, "page": page.number,
+        }
+        for piece in splitter.split_text(page.text):
+            chunks.append(Document(page_content=f"{citation(source, None)}\n{piece}", metadata=metadata))
+    return chunks
+
+
+STRATEGIES = {
+    "article": split_document,
+    "fixed-500": lambda pages: split_fixed(pages, 500),
+    "fixed-1000": lambda pages: split_fixed(pages, 1000),
+}
+
+
+def split_corpus(pages: list[Page], strategy: str = "article") -> list[Document]:
     by_document: dict[str, list[Page]] = {}
     for page in pages:
         by_document.setdefault(page.source.doc_id, []).append(page)
-    return [chunk for document in by_document.values() for chunk in split_document(document)]
+    split = STRATEGIES[strategy]
+    return [chunk for document in by_document.values() for chunk in split(document)]

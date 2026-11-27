@@ -59,3 +59,13 @@ def test_a_reference_to_an_article_at_the_start_of_a_line_is_not_a_new_unit():
         "Art. 40. Para obter o diploma o aluno deve cumprir os requisitos do\nArt. 5o destas Normas;\nII - ter depositado a dissertação."
     ))
     assert [chunk.metadata["article"] for chunk in chunks] == ["Art. 40"]
+
+
+def test_fixed_strategy_cuts_by_size_without_article_labels():
+    from assistant.chunking import split_corpus
+
+    text = "Art. 1º " + " ".join(["O aluno deve cumprir os créditos exigidos."] * 60)
+    chunks = split_corpus(pages(text), strategy="fixed-500")
+    assert len(chunks) > 1
+    assert {chunk.metadata["article"] for chunk in chunks} == {None}
+    assert all(len(chunk.page_content.split("\n", 1)[1]) <= 500 for chunk in chunks)
