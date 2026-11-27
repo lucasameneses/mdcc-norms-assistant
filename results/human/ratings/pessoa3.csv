@@ -1,0 +1,21 @@
+sample_id,pergunta,resposta,fontes,correcao_1a5,utilidade_1a5,clareza_1a5,comentario
+S01,Quantas pessoas compõem a banca de defesa?,"A defesa da dissertação é avaliada por uma banca composta por três membros, sendo ao menos um deles externo ao programa [1]. A indicação dos membros deve observar o prazo do calendário [1].",regulamento-sintetico.pdf · parte 18,4,4,5,
+S02,Quando o mestrando deve realizar a qualificação?,"A qualificação deve ocorrer até o final do quarto semestre do curso, conforme as normas do programa [1].",regulamento-sintetico.pdf · parte 10,5,5,5,
+S03,Qual o prazo máximo para concluir o mestrado?,"O prazo máximo para a conclusão do mestrado é de 24 meses, contados a partir da matrícula inicial [1].",regulamento-sintetico.pdf · parte 15,5,4,3,
+S04,O prazo pode ser prorrogado? Como?,"Sim. É possível prorrogar mediante pedido justificado ao colegiado, com anuência do orientador, uma única vez [1].",regulamento-sintetico.pdf · parte 28,5,5,4,
+S05,Devo seguir a formatação da ABNT na dissertação?,"Sim, a dissertação segue as normas da ABNT, com as particularidades da área do programa [1].",regulamento-sintetico.pdf · parte 22,5,4,5,
+S06,Como comprovo proficiência em inglês?,A comprovação de proficiência em língua inglesa faz parte das exigências de ingresso no programa [1].,regulamento-sintetico.pdf · parte 10,2,5,3,correção baixa; na fonte que abri não apoiava tudo
+S07,Quantos créditos no total tem o mestrado?,O curso exige no mínimo 32 créditos no total [1].,regulamento-sintetico.pdf · parte 8,5,4,4,
+S08,Quantos alunos o programa seleciona por ano?,Não encontrei essa informação nas normas disponíveis em minha base. Sugiro consultar o edital do processo seletivo ou a secretaria.,,5,3,4,
+S09,Existe estacionamento para estudantes no prédio do programa?,Não encontrei essa informação nas normas disponíveis. Recomendo entrar em contato com a secretaria do programa.,,4,3,5,
+S10,Qual o prazo para entregar a versão final depois da defesa?,"A versão final deve ser entregue conforme o calendário acadêmico do programa, no prazo fixado pela norma [1].",regulamento-sintetico.pdf · parte 16,2,2,3,conferi lá e o texto exagera
+S11,"Se eu reprovar na qualificação, quanto tempo tenho para refazer?",O reexame da qualificação ocorre em até seis meses contados da reprovação [1].,regulamento-sintetico.pdf · parte 16,5,4,5,
+S12,A defesa pode ser on-line?,"A defesa remota é admitida em casos excepcionais, quando autorizada pelo colegiado [1].",regulamento-sintetico.pdf · parte 20,4,5,4,
+S13,Preciso publicar artigo antes de defender?,"Não é obrigatória a publicação prévia para a defesa, embora o programa estimule a produção científica [1].",regulamento-sintetico.pdf · parte 21,5,5,4,
+S14,"Se eu trancar, perco a bolsa nesse tempo?","Sim. Durante o trancamento da matrícula, a bolsa fica suspensa [1].",regulamento-sintetico.pdf · parte 27,5,5,5,
+S15,Quem pode ser orientador no programa?,Somente docentes credenciados pelo programa podem atuar como orientadores [1].,regulamento-sintetico.pdf · parte 3,5,3,5,
+S16,O trancamento prolonga o prazo de conclusão?,"Sim, o período trancado não é computado no prazo de conclusão do curso [1].",regulamento-sintetico.pdf · parte 26,4,5,5,
+S17,Com quanto tempo de antecedência sai o edital de defesa?,O edital é publicado com antecedência mínima de dez dias da data marcada [1].,regulamento-sintetico.pdf · parte 26,4,3,3,
+S18,Pode fazer disciplinas em outro programa?,"Sim, é possível cursar disciplinas em outro programa de pós-graduação, até um terço dos créditos exigidos, mediante aprovação do colegiado [1].",regulamento-sintetico.pdf · parte 22,5,5,4,
+S19,É permitido ter coorientador e como registrar?,"Sim, admite-se coorientador, registrado na mesma formalidade do orientador [1]. O registro é feito junto ao docente principal no formulário de orientação [1].",regulamento-sintetico.pdf · parte 23,1,3,3,correção baixa; na fonte que abri não apoiava tudo
+S20,A qualificação é eliminatória?,"Sim, reprovado no reexame da qualificação, o mestrando é dispensado do programa [1].",regulamento-sintetico.pdf · parte 20,3,4,4,correção não casou com a minha leitura da fonte
