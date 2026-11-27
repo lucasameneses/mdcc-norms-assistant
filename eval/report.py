@@ -75,7 +75,7 @@ def estimates(runs: pd.DataFrame, models: pd.DataFrame) -> pd.DataFrame:
     return table[["quantization", "usd_per_1000_questions", "weights_gb"]]
 
 
-def build_summary(runs: pd.DataFrame) -> str:
+def build_summary(runs: pd.DataFrame, retrieval: Path = RETRIEVAL) -> str:
     sections = [
         ("Answer and retrieval quality (normal questions, scores 0-2, rates 0-1)", quality(runs)),
         ("Formal versus informal phrasing (pass rate)", by_style(runs)),
@@ -86,8 +86,8 @@ def build_summary(runs: pd.DataFrame) -> str:
         sections.append(("Estimated cost and memory (see results/README.md)", estimates(runs, pd.read_csv(MODELS))))
     if EMBEDDING_MEMORY.is_file():
         sections.append(("Measured memory of the local embedding container", pd.read_csv(EMBEDDING_MEMORY).set_index("model")))
-    if RETRIEVAL.is_file():
-        grid = pd.read_csv(RETRIEVAL).set_index(["strategy", "k"])
+    if retrieval.is_file():
+        grid = pd.read_csv(retrieval).set_index(["strategy", "k"])
         sections.insert(0, ("Retrieval grid: chunking strategy x top-k (no LLM)", grid))
     body = [f"# Evaluation summary\n\nRuns: {', '.join(sorted(runs.run_id.unique()))}"]
     body += [f"## {title}\n\n{markdown(table)}" for title, table in sections]
@@ -95,8 +95,15 @@ def build_summary(runs: pd.DataFrame) -> str:
 
 
 def main() -> None:
-    SUMMARY.write_text(build_summary(load_runs()))
-    print(f"written {SUMMARY.relative_to(ROOT)}")
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--runs", type=Path, default=RUNS)
+    parser.add_argument("--summary", type=Path, default=SUMMARY)
+    parser.add_argument("--retrieval", type=Path, default=RETRIEVAL)
+    args = parser.parse_args()
+    args.summary.write_text(build_summary(load_runs(args.runs), args.retrieval))
+    print(f"written {args.summary}")
 
 
 if __name__ == "__main__":

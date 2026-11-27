@@ -29,9 +29,12 @@ def draw_sample(runs: pd.DataFrame, size: int, seed: int = 42) -> pd.DataFrame:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--size", type=int, default=20)
+    parser.add_argument("--runs", type=Path, default=None)
+    parser.add_argument("--human", type=Path, default=HUMAN)
     args = parser.parse_args()
-    sample = draw_sample(load_runs(), args.size)
-    HUMAN.mkdir(parents=True, exist_ok=True)
+    sample = draw_sample(load_runs(args.runs) if args.runs else load_runs(), args.size)
+    human = args.human
+    human.mkdir(parents=True, exist_ok=True)
     sheet = pd.DataFrame({
         "sample_id": sample.sample_id,
         "pergunta": sample.question,
@@ -40,9 +43,9 @@ def main() -> None:
     })
     for column in SCORE_COLUMNS:
         sheet[column] = ""
-    sheet.to_csv(HUMAN / "sample.csv", index=False)
-    sample[["sample_id", "run_id", "model", "question_id"]].to_csv(HUMAN / "key.csv", index=False)
-    print(f"{len(sheet)} answers in results/human/sample.csv")
+    sheet.to_csv(human / "sample.csv", index=False)
+    sample[["sample_id", "run_id", "model", "question_id"]].to_csv(human / "key.csv", index=False)
+    print(f"{len(sheet)} answers in {human / 'sample.csv'}")
 
 
 if __name__ == "__main__":

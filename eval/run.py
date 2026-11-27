@@ -19,23 +19,25 @@ QUESTIONS = ROOT / "eval" / "questions.jsonl"
 RUNS = ROOT / "results" / "runs"
 
 
-def load_questions() -> list[dict]:
-    return [json.loads(line) for line in QUESTIONS.read_text().splitlines() if line.strip()]
+def load_questions(path: Path = QUESTIONS) -> list[dict]:
+    return [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", required=True)
     parser.add_argument("--k", type=int, default=5)
+    parser.add_argument("--questions", type=Path, default=QUESTIONS)
+    parser.add_argument("--out", type=Path, default=RUNS)
     args = parser.parse_args()
 
     settings = load_settings()
     stores = {name: vector_store(settings, name) for name in (settings.collection, POISONED_COLLECTION)}
     chat, judge = chat_model(settings, args.model), chat_model(settings, settings.judge_model, json_output=True)
     run_id = f"{args.model.replace(':', '-')}-k{args.k}-{datetime.now():%Y%m%d-%H%M}"
-    output = RUNS / f"{run_id}.jsonl"
+    output = args.out / f"{run_id}.jsonl"
 
-    questions = load_questions()
+    questions = load_questions(args.questions)
     for number, question in enumerate(questions, start=1):
         collection = POISONED_COLLECTION if question["category"] == "injection" else settings.collection
         retrieved = []
@@ -57,7 +59,7 @@ def main() -> None:
             **score(question, answer.text, chunk_texts, judge),
         })
         print(f"{number}/{len(questions)} {question['id']}")
-    print(f"written {output.relative_to(ROOT)}")
+    print(f"written {output}")
 
 
 if __name__ == "__main__":

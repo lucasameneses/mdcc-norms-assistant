@@ -37,8 +37,16 @@ def grid_rows(strategy: str, ranked_texts: list[tuple[str, list[str]]]) -> list[
 
 
 def main() -> None:
+    import argparse
+
+    from eval.run import QUESTIONS
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--questions", type=Path, default=QUESTIONS)
+    parser.add_argument("--out", type=Path, default=OUTPUT)
+    args = parser.parse_args()
     settings = load_settings()
-    questions = [q for q in load_questions() if q["category"] == "normal"]
+    questions = [q for q in load_questions(args.questions) if q["category"] == "normal"]
     if not questions:
         raise SystemExit("No normal questions with evidence in eval/questions.jsonl.")
     rows = []
@@ -50,12 +58,12 @@ def main() -> None:
         ]
         rows += grid_rows(strategy, ranked)
         print(f"{strategy}: done")
-    OUTPUT.parent.mkdir(parents=True, exist_ok=True)
-    with OUTPUT.open("w", newline="") as output:
+    args.out.parent.mkdir(parents=True, exist_ok=True)
+    with args.out.open("w", newline="") as output:
         writer = csv.DictWriter(output, fieldnames=list(rows[0]))
         writer.writeheader()
         writer.writerows(rows)
-    print(f"written {OUTPUT.relative_to(ROOT)}")
+    print(f"written {args.out}")
 
 
 if __name__ == "__main__":

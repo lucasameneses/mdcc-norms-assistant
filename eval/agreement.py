@@ -51,16 +51,23 @@ def judge_agreement(ratings: pd.DataFrame, key: pd.DataFrame, runs: pd.DataFrame
 
 
 def main() -> None:
-    ratings = load_ratings()
-    key = pd.read_csv(HUMAN / "key.csv")
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--human", type=Path, default=HUMAN)
+    parser.add_argument("--runs", type=Path, default=None)
+    args = parser.parse_args()
+    human = args.human
+    ratings = load_ratings(human / "ratings")
+    key = pd.read_csv(human / "key.csv")
     report = (
         "# Human evaluation\n\n"
         f"Raters: {ratings.rater.nunique()}; answers: {ratings.sample_id.nunique()}.\n\n"
         f"## Scores and inter-rater agreement\n\n{markdown(human_table(ratings))}\n\n"
-        f"## Judge versus humans\n\n{markdown(judge_agreement(ratings, key, load_runs()))}\n"
+        f"## Judge versus humans\n\n{markdown(judge_agreement(ratings, key, load_runs(args.runs) if args.runs else load_runs()))}\n"
     )
-    (HUMAN / "agreement.md").write_text(report)
-    print("written results/human/agreement.md")
+    (human / "agreement.md").write_text(report)
+    print(f"written {human / 'agreement.md'}")
 
 
 if __name__ == "__main__":
